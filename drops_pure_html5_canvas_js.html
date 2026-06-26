@@ -1,0 +1,3289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drops — A Poem</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cinzel:wght@400;500&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #080c18;
+  color: #c8d4ea;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  overflow-x: hidden;
+}
+
+#scene-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+#rain-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+/* ── Page shell — left-aligned on desktop, centred on mobile ── */
+.page {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+  margin: 0;
+  padding: 0 0 120px 6vw;
+}
+
+/* ── Hero — properly centred, no offset hack ── */
+.hero {
+  min-height: 100svh; /* svh = safe viewport height on mobile (avoids browser-chrome overlap) */
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  position: relative;
+  left: -6vw; /* counteract .page left padding so hero spans full width */
+}
+
+.title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(3rem, 14vw, 7rem);
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  color: #f0ece2;
+  line-height: 1;
+  opacity: 0;
+  animation: riseIn 2.2s cubic-bezier(0.16,1,0.3,1) 0.4s forwards;
+}
+
+.eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(0.58rem, 1.8vw, 0.68rem);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(160,180,210,0.55);
+  margin-top: 18px;
+  opacity: 0;
+  animation: riseIn 2.2s ease 1s forwards;
+}
+
+.scroll-hint {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: riseIn 2s ease 2s forwards;
+}
+.scroll-hint span {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(160,180,210,0.35);
+}
+.scroll-line {
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(to bottom, rgba(180,200,230,0.4), transparent);
+  animation: scrollPulse 2s ease infinite;
+}
+
+@keyframes riseIn {
+  from { opacity:0; transform: translateY(16px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+@keyframes scrollPulse {
+  0%,100% { opacity:0.3; transform: scaleY(1); }
+  50%     { opacity:0.8; transform: scaleY(1.08); }
+}
+
+/* ── Stanza sections ── */
+.stanza-section {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  padding: 60px 0;
+}
+
+.stanza-card {
+  width: 100%;
+  background: transparent;
+  padding: 0 0 0 4px;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 1.1s ease, transform 1.1s ease;
+}
+.stanza-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Lines */
+.line {
+  display: block;
+  font-size: clamp(1.05rem, 4.2vw, 1.38rem);
+  line-height: 2.15;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: 0.015em;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.98), 0 0 48px rgba(0,0,0,0.85);
+}
+.line-key { font-weight: 400; }
+
+/* Per-stanza colour voices */
+.s1 .line     { color: #b2cae8; }
+.s1 .line-key { color: #d6e8ff; text-shadow: 0 0 22px rgba(180,220,255,0.20), 0 2px 20px rgba(0,0,0,.98); }
+
+.s2 .line     { color: #9aaac4; }
+.s2 .line-key { color: #beccdc; }
+
+.s3 .line     { color: #98a8c2; }
+.s3 .line-key { color: #c0d0e0; }
+
+.s4 .line     { color: #8898b8; }
+.s4 .line-key { color: #aabbd4; }
+
+.s5 .line     { color: #c4b898; }
+.s5 .line-key { color: #e8c87a; text-shadow: 0 0 28px rgba(232,200,122,0.30), 0 2px 20px rgba(0,0,0,.98); font-weight:400; }
+
+/* drop divider */
+.drop-sep {
+  display: flex;
+  justify-content: flex-start;
+  padding: 4px 0 4px 4px;
+  opacity: 0;
+  transition: opacity 1.2s ease 0.2s;
+}
+.drop-sep.visible { opacity: 1; }
+
+.poem-footer {
+  text-align: left;
+  padding: 60px 0 20px 4px;
+  border-top: 1px solid rgba(120,140,180,0.10);
+}
+.poem-footer p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(120,140,180,0.25);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ═══════════════════════════════════════
+
+   480px  — small phones  (iPhone SE, Galaxy A)
+   640px  — large phones / small tablets (iPhone Pro Max, Pixel)
+   768px  — tablets portrait (iPad mini)
+   1024px — tablets landscape / small laptops
+   default — desktop (>1024px)
+*/
+
+/* ── Large phones (641–768px) ── */
+@media (max-width: 768px) {
+  .page {
+    padding: 0 0 100px 5vw;
+    max-width: 100%;
+  }
+  .hero {
+    left: -5vw;
+    padding: 32px 20px;
+  }
+  .stanza-section {
+    min-height: 85vh;
+    padding: 48px 0;
+  }
+  .scroll-hint {
+    margin-top: 40px;
+  }
+}
+
+/* ── Small phones (≤480px) ── */
+@media (max-width: 480px) {
+  .page {
+    padding: 0 0 80px 0;  /* remove left indent; text centres itself */
+    max-width: 100%;
+  }
+  .hero {
+    left: 0;              /* no offset needed — page has no indent */
+    padding: 28px 20px;
+    min-height: 100svh;
+  }
+  .title {
+    letter-spacing: 0.18em; /* tight letter-spacing fits narrow screens */
+  }
+  .stanza-section {
+    min-height: 80vh;
+    padding: 40px 0;
+    align-items: flex-start; /* push text toward top so it clears the canvas figure */
+    padding-top: 28vh;       /* ~28% down — text visible, figure still framed below */
+  }
+  .stanza-card {
+    padding: 0 20px;         /* side padding so lines don't hit the edge */
+  }
+  .line {
+    line-height: 2.0;        /* slightly tighter for phone height */
+  }
+  .drop-sep {
+    padding-left: 20px;
+  }
+  .poem-footer {
+    padding: 40px 20px 20px;
+  }
+  .scroll-hint {
+    margin-top: 32px;
+  }
+}
+
+/* ── Very small phones (≤360px — Galaxy A series, older iPhones) ── */
+@media (max-width: 360px) {
+  .title {
+    letter-spacing: 0.12em;
+  }
+  .stanza-card {
+    padding: 0 16px;
+  }
+  .stanza-section {
+    padding-top: 22vh;
+  }
+}
+
+/* ── Tablets landscape / small laptops (769–1024px) ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page {
+    padding: 0 0 100px 5vw;
+    max-width: 560px;
+  }
+  .hero {
+    left: -5vw;
+  }
+}
+
+/* ── Tall narrow viewport (phone landscape or unusual aspect) ── */
+@media (max-height: 500px) and (max-width: 900px) {
+  .hero {
+    min-height: 100svh;
+    padding: 20px 20px;
+    justify-content: center;
+  }
+  .title {
+    font-size: clamp(2.2rem, 10vw, 4rem);
+  }
+  .scroll-hint {
+    margin-top: 20px;
+  }
+  .scroll-line {
+    height: 28px;
+  }
+  .stanza-section {
+    min-height: 90vh;
+    padding-top: 10vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stanza-card, .drop-sep { transition: none; opacity:1; transform:none; }
+  .title, .eyebrow, .scroll-hint { animation: none; opacity:1; }
+  .scroll-line { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene-canvas"></canvas>
+<canvas id="rain-canvas"></canvas>
+
+<main class="page">
+
+  <section class="hero">
+    <h1 class="title">Drops</h1>
+    <p class="eyebrow">a poem</p>
+    <div class="scroll-hint">
+      <span>scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <section class="stanza-section" data-scene="1">
+    <div class="stanza-card s1">
+      <span class="line">Maybe just a little more</span>
+      <span class="line line-key">And I would have touched the shore</span>
+      <span class="line">The waves were still chanting my name</span>
+      <span class="line">But sea no longer felt the same</span>
+    </div>
+  </section>
+
+  <div class="drop-sep">
+    <svg width="5" height="9" viewBox="0 0 5 9"><path d="M2.5 0 C2.5 0 5 4 5 5.8 A2.5 2.5 0 0 1 0 5.8 C0 4 2.5 0 2.5 0Z" fill="#6a8ab0" opacity="0.5"/></svg>
+  </div>
+
+  <section class="stanza-section" data-scene="2">
+    <div class="stanza-card s2">
+      <span class="line">I chose a path that felt secure</span>
+      <span class="line">stepped back from what I adore</span>
+      <span class="line">A decision that felt more mature</span>
+      <span class="line line-key">Yet left my heart forever unsure</span>
+    </div>
+  </section>
+
+  <div class="drop-sep">
+    <svg width="5" height="9" viewBox="0 0 5 9"><path d="M2.5 0 C2.5 0 5 4 5 5.8 A2.5 2.5 0 0 1 0 5.8 C0 4 2.5 0 2.5 0Z" fill="#586888" opacity="0.5"/></svg>
+  </div>
+
+  <section class="stanza-section" data-scene="3">
+    <div class="stanza-card s3">
+      <span class="line">Strangely it felt peaceful there</span>
+      <span class="line">Far away from storm and fear</span>
+      <span class="line line-key">But soon enough the silence met</span>
+      <span class="line line-key">The falling cold drops of regret</span>
+    </div>
+  </section>
+
+  <div class="drop-sep">
+    <svg width="5" height="9" viewBox="0 0 5 9"><path d="M2.5 0 C2.5 0 5 4 5 5.8 A2.5 2.5 0 0 1 0 5.8 C0 4 2.5 0 2.5 0Z" fill="#485878" opacity="0.5"/></svg>
+  </div>
+
+  <section class="stanza-section" data-scene="4">
+    <div class="stanza-card s4">
+      <span class="line line-key">I stood unanswered, it started to rain</span>
+      <span class="line">Even the thunder was roaring with pain</span>
+      <span class="line">Those clouds that seemed fully content</span>
+      <span class="line line-key">Were too shedding drops of lament</span>
+    </div>
+  </section>
+
+  <div class="drop-sep">
+    <svg width="5" height="9" viewBox="0 0 5 9"><path d="M2.5 0 C2.5 0 5 4 5 5.8 A2.5 2.5 0 0 1 0 5.8 C0 4 2.5 0 2.5 0Z" fill="#b8985e" opacity="0.5"/></svg>
+  </div>
+
+  <section class="stanza-section" data-scene="5">
+    <div class="stanza-card s5">
+      <span class="line">Then they stopped and moved forward</span>
+      <span class="line">As if they started chasing the next bird</span>
+      <span class="line">Is it that their scars were gone,</span>
+      <span class="line line-key">Or that they learned to carry on?</span>
+    </div>
+  </section>
+
+  <footer class="poem-footer">
+    <p>drops &nbsp;·&nbsp; stillness after rain</p>
+  </footer>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ENGINE — fixed canvas crossfade on scroll (from drops-poem.html)
+// ═══════════════════════════════════════════════════════════════
+
+const sceneCanvas = document.getElementById('scene-canvas');
+const sctx = sceneCanvas.getContext('2d');
+const rainCanvas = document.getElementById('rain-canvas');
+const rctx = rainCanvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = sceneCanvas.width  = rainCanvas.width  = window.innerWidth;
+  H = sceneCanvas.height = rainCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+// ── Stars ─────────────────────────────────────────────────────
+const STARS = Array.from({length:160}, () => ({
+  x: Math.random(), y: Math.random()*0.65,
+  r: Math.random()*1.4+0.3,
+  a: Math.random()*0.7+0.2,
+  twinkleSpeed: Math.random()*0.02+0.005,
+  phase: Math.random()*Math.PI*2
+}));
+let starPhase = 0;
+function drawStars(ctx, alpha) {
+  starPhase += 0.008;
+  STARS.forEach(s => {
+    const tw = 0.6+0.4*Math.sin(starPhase*s.twinkleSpeed*60+s.phase);
+    ctx.beginPath();
+    ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(220,230,255,${s.a*tw*alpha})`;
+    ctx.fill();
+  });
+}
+
+// ── Moon ──────────────────────────────────────────────────────
+function drawMoon(ctx, alpha) {
+  const mx=W*0.78, my=H*0.18, mr=W<500?28:38;
+
+  // Soft outer aura
+  const grd=ctx.createRadialGradient(mx,my,mr*0.5,mx,my,mr*3.5);
+  grd.addColorStop(0,`rgba(200,218,255,${0.16*alpha})`);
+  grd.addColorStop(0.35,`rgba(160,190,240,${0.07*alpha})`);
+  grd.addColorStop(1,'transparent');
+  ctx.fillStyle=grd;
+  ctx.beginPath(); ctx.arc(mx,my,mr*3.5,0,Math.PI*2); ctx.fill();
+
+  // Draw crescent using offscreen canvas so shadow is truly transparent
+  const oc = document.createElement('canvas');
+  oc.width = W; oc.height = H;
+  const ox = oc.getContext('2d');
+  // Lit face
+  const moonGrd = ox.createRadialGradient(mx+mr*0.18, my-mr*0.2, mr*0.05, mx, my, mr);
+  moonGrd.addColorStop(0,   'rgba(252,254,255,1)');
+  moonGrd.addColorStop(0.45,'rgba(228,238,255,1)');
+  moonGrd.addColorStop(1,   'rgba(190,208,240,1)');
+  ox.fillStyle = moonGrd;
+  ox.beginPath(); ox.arc(mx, my, mr, 0, Math.PI*2); ox.fill();
+  // Cut shadow bite with destination-out — left-facing crescent (shadow on right)
+  ox.globalCompositeOperation = 'destination-out';
+  ox.fillStyle = 'rgba(0,0,0,1)';
+  ox.beginPath(); ox.arc(mx + mr*0.42, my + mr*0.04, mr*0.88, 0, Math.PI*2); ox.fill();
+  // Draw onto main canvas
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(oc, 0, 0);
+  ctx.globalAlpha = 1;
+
+  // Thin luminous edge glow on the lit (left) arc
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.35;
+  ctx.strokeStyle = 'rgba(230,242,255,1)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(mx, my, mr, Math.PI*0.45, Math.PI*1.55);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── Sea helper ────────────────────────────────────────────────
+function drawSea(ctx, alpha, t, col1, col2, yRatio) {
+  const seaY=H*yRatio;
+  const sg=ctx.createLinearGradient(0,seaY,0,H);
+  sg.addColorStop(0,col1); sg.addColorStop(1,col2);
+  ctx.globalAlpha=alpha; ctx.fillStyle=sg;
+  ctx.fillRect(0,seaY,W,H-seaY); ctx.globalAlpha=1;
+  for(let w=0;w<5;w++){
+    const wy=seaY+w*H*0.038+Math.sin(t*0.4+w)*6;
+    ctx.beginPath(); ctx.moveTo(0,wy);
+    for(let x=0;x<=W;x+=4){
+      ctx.lineTo(x, wy+Math.sin(x/W*Math.PI*6+t*0.8+w)*(3+w*0.5));
+    }
+    ctx.strokeStyle=`rgba(160,190,230,${(0.12-w*0.018)*alpha})`;
+    ctx.lineWidth=1.2; ctx.stroke();
+  }
+}
+
+// ── Ground / land helper ──────────────────────────────────────
+function drawGround(ctx, alpha) {
+  const lg=ctx.createLinearGradient(0,H*0.78,0,H);
+  lg.addColorStop(0,`rgba(10,14,22,${alpha})`);
+  lg.addColorStop(1,`rgba(6,8,14,${alpha})`);
+  ctx.fillStyle=lg; ctx.fillRect(0,H*0.78,W,H*0.22);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE 0 — Hero title: moonlit open sea
+// ═══════════════════════════════════════════════════════════════
+function drawSceneHero(ctx, alpha, t) {
+  // Sky
+  const skyG=ctx.createLinearGradient(0,0,0,H);
+  skyG.addColorStop(0,`rgba(6,10,20,${alpha})`);
+  skyG.addColorStop(0.45,`rgba(13,20,40,${alpha})`);
+  skyG.addColorStop(1,`rgba(18,33,58,${alpha})`);
+  ctx.fillStyle=skyG; ctx.fillRect(0,0,W,H);
+
+  drawStars(ctx,alpha);
+  drawMoon(ctx,alpha*0.9);
+
+  const hg=ctx.createLinearGradient(0,H*0.52,0,H*0.62);
+  hg.addColorStop(0,`rgba(60,90,140,${0.18*alpha})`);
+  hg.addColorStop(1,'transparent');
+  ctx.fillStyle=hg; ctx.fillRect(0,H*0.52,W,H*0.1);
+
+  drawSea(ctx,alpha,t,'#1a3060','#0e2040',0.55);
+
+  const refX=W*0.78;
+  for(let i=0;i<7;i++){
+    const ry=H*0.58+i*(H*0.038);
+    const rw=(60-i*6)*(W/900)*alpha;
+    ctx.fillStyle=`rgba(200,215,255,${(0.22-i*0.025)*alpha})`;
+    ctx.beginPath();
+    ctx.ellipse(refX+Math.sin(t*0.8+i)*12,ry,rw,2.5,0,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE 1 — Turbulent ocean, figure wading, golden distant mountain right, dramatic sunset sky
+// ═══════════════════════════════════════════════════════════════
+function drawScene1(ctx, alpha, t) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Use elapsed time from scene entry so waves reset to same position every time
+  const wt = (scene1EntryT >= 0 ? (animT - scene1EntryT) : t) + 4.5;
+
+  // Dramatic sky — storm on left, golden break right
+  const sky = ctx.createLinearGradient(0, 0, W, H*0.6);
+  sky.addColorStop(0,   'rgba(6,9,15,1)');
+  sky.addColorStop(0.2, 'rgba(13,21,32,1)');
+  sky.addColorStop(0.5, 'rgba(26,40,64,1)');
+  sky.addColorStop(0.75,'rgba(42,58,80,1)');
+  sky.addColorStop(1,   'rgba(58,74,90,1)');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H*0.68);
+
+  // Golden horizon glow behind the mountain — no sun disc, just warm radiance
+  const sunX = W*0.80, sunY = H*0.38;
+  const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, W*0.55);
+  sunGlow.addColorStop(0,   'rgba(255,200,80,0.72)');
+  sunGlow.addColorStop(0.08,'rgba(240,160,50,0.48)');
+  sunGlow.addColorStop(0.25,'rgba(200,110,30,0.28)');
+  sunGlow.addColorStop(0.5, 'rgba(180,80,20,0.10)');
+  sunGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = sunGlow; ctx.fillRect(0, 0, W, H);
+
+  // Dark storm clouds — left/center using bubble clusters
+  function drawCloud1(cx, cy, cw, ch, cAlpha, dark) {
+    ctx.save(); ctx.globalAlpha = cAlpha * alpha;
+    const bubbles = 7;
+    for (let i=0; i<bubbles; i++) {
+      const bx = cx + cw*(0.05 + i/bubbles*0.9);
+      const by = cy + ch*0.5 + ch*0.35*Math.sin(i*0.9+1);
+      const br = ch*(0.4 + 0.25*Math.sin(i*1.2));
+      const cg = ctx.createRadialGradient(bx, by-br*0.3, br*0.1, bx, by, br);
+      cg.addColorStop(0, dark ? 'rgba(25,35,48,0.95)' : 'rgba(80,100,120,0.8)');
+      cg.addColorStop(1, 'transparent');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  drawCloud1(W*-0.05, H*0.04, W*0.45, H*0.22, 0.92, true);
+  drawCloud1(W*0.22,  H*0.00, W*0.40, H*0.18, 0.80, true);
+  drawCloud1(W*0.40,  H*0.06, W*0.32, H*0.16, 0.60, true);
+  drawCloud1(W*0.58,  H*0.02, W*0.28, H*0.14, 0.35, false);
+
+  // Stars (visible in storm gaps)
+  const sc1stars = Array.isArray(drawScene1._stars) ? drawScene1._stars : (drawScene1._stars = Array.from({length:60}, () => ({
+    x: Math.random(), y: Math.random()*0.38, r: 0.5+Math.random()*1.3, tw: Math.random()*Math.PI*2
+  })));
+  sc1stars.forEach(s => {
+    const a = (0.3 + 0.3*Math.sin(t*0.7+s.tw)) * (s.x > 0.55 ? 0.1 : 1) * alpha;
+    ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(212,228,239,${a})`; ctx.fill();
+  });
+
+  // Ocean body — drawn first so mountain sits on top of it
+  const ocean = ctx.createLinearGradient(0, H*0.52, 0, H);
+  ocean.addColorStop(0, 'rgba(13,45,80,1)');
+  ocean.addColorStop(0.3,'rgba(10,32,64,1)');
+  ocean.addColorStop(1, 'rgba(6,14,24,1)');
+  ctx.fillStyle = ocean; ctx.fillRect(0, H*0.52, W, H*0.48);
+
+  // ── Left-side horizon blend — feather sky into ocean on the far left ──
+  // Prevents the hard gap between storm sky and ocean body visible when waves lower
+  const leftBlend = ctx.createLinearGradient(0, H*0.48, 0, H*0.62);
+  leftBlend.addColorStop(0,   'rgba(13,21,36,0)');
+  leftBlend.addColorStop(0.35,'rgba(13,38,68,0.85)');
+  leftBlend.addColorStop(0.7, 'rgba(13,45,80,1)');
+  leftBlend.addColorStop(1,   'rgba(10,32,64,1)');
+  ctx.fillStyle = leftBlend;
+  ctx.fillRect(0, H*0.48, W*0.65, H*0.15);
+
+  // Golden horizon glow bleeding into the left sea surface — ties glow to water
+  const leftGoldBlend = ctx.createLinearGradient(W*0.30, H*0.54, W*0.68, H*0.62);
+  leftGoldBlend.addColorStop(0, 'transparent');
+  leftGoldBlend.addColorStop(0.5,'rgba(160,100,20,0.12)');
+  leftGoldBlend.addColorStop(1, 'rgba(200,130,30,0.22)');
+  ctx.fillStyle = leftGoldBlend;
+  ctx.fillRect(W*0.28, H*0.52, W*0.42, H*0.12);
+
+  // Cliff-foot mist on left — blurs the hard mountain-left base edge into the sea
+  const cliffLeftMist = ctx.createLinearGradient(W*0.58, H*0.52, W*0.66, H*0.58);
+  cliffLeftMist.addColorStop(0, 'transparent');
+  cliffLeftMist.addColorStop(0.5,'rgba(14,30,55,0.55)');
+  cliffLeftMist.addColorStop(1, 'rgba(10,28,50,0.80)');
+  ctx.fillStyle = cliffLeftMist;
+  ctx.fillRect(W*0.56, H*0.50, W*0.12, H*0.10);
+
+  // ── MOUNTAIN — far right, single unified mass rising from the sea ──
+  ctx.globalAlpha = alpha;
+
+  function mtPath1() {
+    ctx.moveTo(W*0.62, H*0.560);
+    ctx.bezierCurveTo(W*0.64, H*0.510, W*0.655,H*0.470, W*0.670,H*0.445);
+    ctx.bezierCurveTo(W*0.682,H*0.424, W*0.692,H*0.438, W*0.705,H*0.408);
+    ctx.bezierCurveTo(W*0.718,H*0.378, W*0.728,H*0.360, W*0.742,H*0.345); // main peak left
+    ctx.bezierCurveTo(W*0.755,H*0.330, W*0.762,H*0.348, W*0.772,H*0.358);
+    ctx.bezierCurveTo(W*0.784,H*0.370, W*0.792,H*0.352, W*0.805,H*0.338); // main peak right
+    ctx.bezierCurveTo(W*0.818,H*0.324, W*0.828,H*0.342, W*0.840,H*0.355);
+    ctx.bezierCurveTo(W*0.854,H*0.370, W*0.866,H*0.352, W*0.880,H*0.362);
+    ctx.bezierCurveTo(W*0.896,H*0.374, W*0.915,H*0.358, W*0.935,H*0.370);
+    ctx.bezierCurveTo(W*0.955,H*0.382, W*0.975,H*0.395, W,      H*0.415);
+    ctx.lineTo(W, H); ctx.lineTo(W*0.58, H); ctx.closePath();
+  }
+
+  // Base fill
+  const mtGrad1 = ctx.createLinearGradient(W*0.70, H*0.33, W*0.85, H*0.56);
+  mtGrad1.addColorStop(0,   'rgba(22,34,20,1)');
+  mtGrad1.addColorStop(0.25,'rgba(16,26,16,1)');
+  mtGrad1.addColorStop(0.60,'rgba(12,20,13,1)');
+  mtGrad1.addColorStop(1,   'rgba(8,14,10,1)');
+  ctx.fillStyle = mtGrad1;
+  ctx.beginPath(); mtPath1(); ctx.fill();
+
+  // Atmospheric haze — distance illusion
+  const mtHaze1 = ctx.createLinearGradient(W*0.62, H*0.33, W*0.62, H*0.56);
+  mtHaze1.addColorStop(0,   'rgba(30,42,70,0.28)');
+  mtHaze1.addColorStop(0.45,'rgba(22,32,55,0.14)');
+  mtHaze1.addColorStop(1,   'rgba(10,16,28,0.00)');
+  ctx.fillStyle = mtHaze1;
+  ctx.beginPath(); mtPath1(); ctx.fill();
+
+  // Warm amber glow on peak faces — sun is behind, light wraps the ridgeline
+  ctx.save(); ctx.globalAlpha = 0.28 * alpha;
+  const peakGlow1 = ctx.createRadialGradient(W*0.80, H*0.335, 0, W*0.80, H*0.42, W*0.22);
+  peakGlow1.addColorStop(0,   'rgba(255,195,68,0.55)');
+  peakGlow1.addColorStop(0.30,'rgba(220,155,40,0.22)');
+  peakGlow1.addColorStop(0.65,'rgba(180,110,20,0.06)');
+  peakGlow1.addColorStop(1,   'transparent');
+  ctx.fillStyle = peakGlow1;
+  ctx.beginPath(); mtPath1(); ctx.fill();
+  ctx.restore();
+
+  // Faint mist at waterline — extended leftward to blend cliff base into sea
+  const mistBase = ctx.createLinearGradient(W*0.55, H*0.50, W*0.55, H*0.58);
+  mistBase.addColorStop(0, 'transparent');
+  mistBase.addColorStop(1, 'rgba(14,30,50,0.45)');
+  ctx.fillStyle = mistBase;
+  ctx.fillRect(W*0.54, H*0.50, W*0.46, H*0.09);
+
+  // Golden sun path on water
+  const pathGrad = ctx.createLinearGradient(W*0.4, H*0.6, W, H*0.65);
+  pathGrad.addColorStop(0, 'transparent');
+  pathGrad.addColorStop(0.3, 'rgba(201,140,40,0.25)');
+  pathGrad.addColorStop(0.7, 'rgba(220,170,50,0.45)');
+  pathGrad.addColorStop(1, 'rgba(240,200,80,0.6)');
+  ctx.fillStyle = pathGrad;
+  ctx.beginPath();
+  ctx.moveTo(W*0.5, H*0.6); ctx.lineTo(W, H*0.58); ctx.lineTo(W, H); ctx.lineTo(W*0.3, H);
+  ctx.closePath(); ctx.fill();
+
+  // Turbulent wave layers — y baselines raised so waves stay near horizon, not sliding down mountain base
+  const WAVE_LAYERS = [
+    { amp: 22, freq: 0.008, speed: 1.1, y: 0.56, col: [20,55,100],  a: 0.9 },
+    { amp: 16, freq: 0.013, speed: 1.6, y: 0.59, col: [15,45,85],   a: 0.95 },
+    { amp: 10, freq: 0.018, speed: 2.1, y: 0.62, col: [10,32,65],   a: 1.0 },
+    { amp: 7,  freq: 0.025, speed: 2.8, y: 0.66, col: [8,24,50],    a: 1.0 },
+    { amp: 4,  freq: 0.032, speed: 3.4, y: 0.70, col: [6,18,38],    a: 1.0 },
+  ];
+  const WAVE_FLOOR = H * 0.76; // waves never dip below this
+  WAVE_LAYERS.forEach(w => {
+    ctx.beginPath();
+    const by = H * w.y;
+    ctx.moveTo(0, Math.min(by, WAVE_FLOOR));
+    for (let x=0; x<=W; x+=3) {
+      // Extra mid-freq component weighted toward the right to break the flat horizon band
+      const rightBias = 0.5 + 0.5*(x/W);
+      const y = by + Math.sin(x*w.freq + wt*w.speed) * w.amp
+                   + Math.sin(x*w.freq*1.6 + wt*w.speed*0.7) * w.amp*0.4
+                   + Math.sin(x*w.freq*0.4 + wt*w.speed*1.3) * w.amp*0.3
+                   + Math.sin(x*0.011 + wt*1.4) * w.amp*0.35*rightBias;
+      ctx.lineTo(x, Math.min(y, WAVE_FLOOR));
+    }
+    ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+    ctx.fillStyle = `rgba(${w.col[0]},${w.col[1]},${w.col[2]},${w.a})`;
+    ctx.fill();
+  });
+
+  // Wave foam crests
+  for (let i=0; i<5; i++) {
+    const wy = H*(0.62 + i*0.025);
+    ctx.beginPath(); ctx.moveTo(0, Math.min(wy, WAVE_FLOOR));
+    for (let x=0; x<=W; x+=3) {
+      const y = wy + Math.sin(x*0.014 + wt*(1.2+i*0.3)) * 9
+                   + Math.sin(x*0.025 + wt*(0.8+i*0.2)) * 4;
+      ctx.lineTo(x, Math.min(y, WAVE_FLOOR));
+    }
+    ctx.strokeStyle = `rgba(200,220,240,${0.14 - i*0.022})`;
+    ctx.lineWidth = 1.5 - i*0.2; ctx.stroke();
+  }
+
+  // Water spray particles
+  if (!drawScene1._spray) {
+    drawScene1._spray = Array.from({length: 60}, () => ({
+      x: Math.random(), y: 0.65+Math.random()*0.05,
+      vx: -0.001+Math.random()*0.002, vy: -0.003+Math.random()*(-0.001),
+      life: Math.random(), maxL: 0.3+Math.random()*0.5, r: 1+Math.random()*2
+    }));
+  }
+  drawScene1._spray.forEach(s => {
+    s.life += 0.02;
+    if (s.life > s.maxL) { s.life = 0; s.x = 0.15+Math.random()*0.7; s.y = 0.65+Math.random()*0.05; }
+    s.x += s.vx; s.y += s.vy*0.5;
+    const a = Math.sin(s.life/s.maxL * Math.PI) * 0.5 * alpha;
+    ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(200,220,240,${a})`; ctx.fill();
+  });
+
+  // Figure — wading waist deep, facing right toward golden shore
+  const fx = W*0.38, fy = H*0.67;
+  const sc = H/720;
+
+  // Wet body shimmer
+  ctx.save(); ctx.globalAlpha = 0.12*alpha;
+  const shimmer = ctx.createRadialGradient(fx, fy, 5, fx, fy, 40*sc);
+  shimmer.addColorStop(0, 'rgba(201,168,76,0.6)'); shimmer.addColorStop(1, 'transparent');
+  ctx.fillStyle = shimmer; ctx.fillRect(fx-45*sc, fy-60*sc, 90*sc, 70*sc);
+  ctx.restore();
+
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(10,24,40,1)';
+  ctx.strokeStyle = 'rgba(10,24,40,1)';
+
+  // Torso
+  ctx.beginPath();
+  ctx.moveTo(fx-7*sc, fy-8*sc); ctx.lineTo(fx+7*sc, fy-8*sc);
+  ctx.lineTo(fx+6*sc, fy-36*sc); ctx.lineTo(fx-6*sc, fy-36*sc);
+  ctx.closePath(); ctx.fill();
+  // Head
+  ctx.beginPath(); ctx.arc(fx, fy-44*sc, 10*sc, 0, Math.PI*2); ctx.fill();
+  // Coat flaps
+  ctx.beginPath();
+  ctx.moveTo(fx-6*sc, fy-30*sc); ctx.lineTo(fx-16*sc, fy-8*sc); ctx.lineTo(fx-4*sc, fy-8*sc);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(fx+6*sc, fy-30*sc); ctx.lineTo(fx+16*sc, fy-8*sc); ctx.lineTo(fx+4*sc, fy-8*sc);
+  ctx.closePath(); ctx.fill();
+  // Arm reaching forward toward golden shore
+  ctx.lineWidth = 4*sc; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(fx+7*sc, fy-30*sc);
+  ctx.quadraticCurveTo(fx+32*sc, fy-44*sc, fx+58*sc, fy-38*sc);
+  ctx.stroke();
+  // Other arm back
+  ctx.beginPath();
+  ctx.moveTo(fx-7*sc, fy-30*sc);
+  ctx.quadraticCurveTo(fx-20*sc, fy-20*sc, fx-18*sc, fy-10*sc);
+  ctx.stroke();
+
+  // Ocean mist atmosphere
+  for (let i=0; i<4; i++) {
+    const mx = W*(0.05 + i*0.28 + 0.04*Math.sin(wt*0.2+i));
+    const my = H*0.62;
+    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, W*0.18);
+    mg.addColorStop(0, 'rgba(180,210,240,0.05)');
+    mg.addColorStop(1, 'transparent');
+    ctx.fillStyle = mg; ctx.fillRect(0, H*0.5, W, H*0.2);
+  }
+
+  // Dark vignette
+  const vig = ctx.createRadialGradient(W*0.5, H*0.5, H*0.1, W*0.5, H*0.5, H*0.85);
+  vig.addColorStop(0, 'transparent');
+  vig.addColorStop(1, 'rgba(2,5,12,0.55)');
+  ctx.fillStyle = vig; ctx.fillRect(0,0,W,H);
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE 2 — "He chose the safer path, but every step forward reminds him
+//            of the shore he left behind."
+//
+// WORLD CONTINUITY (Prompts 2 & 5):
+//   • Exact same sun position, storm-to-golden sky gradient as Scene 1
+//   • Same horizon height, same distant headland silhouette
+//   • Ocean remains visible on the LEFT — camera has moved ~200m inland
+//   • Waves use identical rhythm/parameters as Scene 1 (just calmer nearshore)
+//   • Path follows the coastline first, then curves inland — sea stays in frame
+//
+// COMPOSITION (Prompt 3):
+//   • Path EMBEDDED in coastal grass — NOT a gray strip on top of terrain
+//   • Soft edges, rocks & vegetation grow into path sides
+//   • Terrain gently undulates — not flat
+//
+// EMOTIONAL STORYTELLING (Prompt 4):
+//   • Traveler walks inland but body language reveals his heart belongs to the ocean
+//   • Shoulders angled toward path, but head and trailing hand reach back toward sea
+//   • One visual truth: he chose the path, but never stopped listening
+// ═══════════════════════════════════════════════════════════════
+function drawScene2(ctx, alpha, t) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const sc = H / 720;
+
+  // ── SKY — IDENTICAL to Scene 1: storm on left, golden break right ──
+  // Same gradient so the sky reads as one continuous world
+  const sky2 = ctx.createLinearGradient(0, 0, W, H*0.6);
+  sky2.addColorStop(0,   'rgba(6,9,15,1)');
+  sky2.addColorStop(0.2, 'rgba(13,21,32,1)');
+  sky2.addColorStop(0.5, 'rgba(26,40,64,1)');
+  sky2.addColorStop(0.75,'rgba(42,58,80,1)');
+  sky2.addColorStop(1,   'rgba(58,74,90,1)');
+  ctx.fillStyle = sky2; ctx.fillRect(0, 0, W, H*0.68);
+
+  // ── SAME SUN — identical position as Scene 1 (W*0.82, H*0.42) ──
+  // The viewer immediately recognizes the same sunset
+  const sunX = W*0.82, sunY = H*0.42;
+  const sunGlow2 = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, W*0.55);
+  sunGlow2.addColorStop(0,   'rgba(255,200,80,0.90)');
+  sunGlow2.addColorStop(0.08,'rgba(240,160,50,0.62)');
+  sunGlow2.addColorStop(0.25,'rgba(200,110,30,0.32)');
+  sunGlow2.addColorStop(0.5, 'rgba(180,80,20,0.10)');
+  sunGlow2.addColorStop(1,   'transparent');
+  ctx.fillStyle = sunGlow2; ctx.fillRect(0, 0, W, H);
+
+  // Storm clouds — same positions as Scene 1 (same sky, different camera angle)
+  function cloud2(cx, cy, cw, ch, cAlpha, dark) {
+    ctx.save(); ctx.globalAlpha = cAlpha * alpha;
+    for (let i=0; i<7; i++) {
+      const bx = cx + cw*(0.05 + i/7*0.90);
+      const by2 = cy + ch*0.5 + ch*0.35*Math.sin(i*0.9+1);
+      const br = ch*(0.4 + 0.25*Math.sin(i*1.2));
+      const cg = ctx.createRadialGradient(bx, by2-br*0.3, br*0.1, bx, by2, br);
+      cg.addColorStop(0, dark ? 'rgba(25,35,48,0.95)' : 'rgba(80,100,120,0.8)');
+      cg.addColorStop(1, 'transparent');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(bx, by2, br, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  cloud2(W*-0.05, H*0.04, W*0.45, H*0.22, 0.88, true);
+  cloud2(W*0.22,  H*0.00, W*0.40, H*0.18, 0.72, true);
+  cloud2(W*0.40,  H*0.06, W*0.32, H*0.16, 0.50, true);
+  cloud2(W*0.58,  H*0.02, W*0.28, H*0.14, 0.28, false);
+
+  // Stars in storm gaps — same side as Scene 1
+  const s2stars = drawScene2._stars || (drawScene2._stars = Array.from({length:50}, () => ({
+    x: Math.random()*0.6, y: Math.random()*0.38, r: 0.5+Math.random()*1.2, tw: Math.random()*Math.PI*2
+  })));
+  s2stars.forEach(s => {
+    const tw = 0.55 + 0.45*Math.sin(t*0.7 + s.tw);
+    const a = (0.3 + 0.3*tw) * (s.x > 0.5 ? 0.08 : 0.9) * alpha;
+    ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(212,228,239,${a})`; ctx.fill();
+  });
+
+  // ── HORIZON — same Y as Scene 1 (H*0.54) — continuous coastline ──
+  const horizY = H * 0.540;
+
+  // ── OCEAN — same parameters as Scene 1, now seen from slightly inland ──
+  // The sea fills the left portion of the frame; the coastline curves toward the viewer.
+  // Same wave rhythm as Scene 1 so the ocean reads as one continuous body of water.
+
+  // Ocean fill — same gradient tones as Scene 1
+  const seaFill = ctx.createLinearGradient(0, horizY, 0, H * 0.80);
+  seaFill.addColorStop(0,   'rgba(13,45,80,1)');
+  seaFill.addColorStop(0.3, 'rgba(10,32,64,1)');
+  seaFill.addColorStop(0.75,'rgba(6,18,38,1)');
+  seaFill.addColorStop(1,   'rgba(4,12,26,1)');
+  ctx.fillStyle = seaFill;
+  ctx.beginPath();
+  ctx.moveTo(0, horizY); ctx.lineTo(W, horizY);
+  ctx.lineTo(W, H); ctx.lineTo(0, H);
+  ctx.closePath(); ctx.fill();
+
+  // Sun path on water — same golden column as Scene 1 (toward sunX)
+  const shimS2 = ctx.createLinearGradient(W*0.4, H*0.6, W, H*0.65);
+  shimS2.addColorStop(0, 'transparent');
+  shimS2.addColorStop(0.3, 'rgba(201,140,40,0.22)');
+  shimS2.addColorStop(0.7, 'rgba(220,170,50,0.40)');
+  shimS2.addColorStop(1,   'rgba(240,200,80,0.55)');
+  ctx.fillStyle = shimS2;
+  ctx.beginPath();
+  ctx.moveTo(W*0.5, H*0.6); ctx.lineTo(W, H*0.58); ctx.lineTo(W, H); ctx.lineTo(W*0.3, H);
+  ctx.closePath(); ctx.fill();
+
+  // Warm amber glow BEHIND the headland — the unreachable shore of Scene 1,
+  // now partially hidden by the headland. Shifted to center-right so it feels
+  // like a natural continuation of the same coastline seen from further inland.
+  const headGlow = ctx.createRadialGradient(W*0.60, H*0.44, 0, W*0.60, H*0.44, W*0.42);
+  headGlow.addColorStop(0,   'rgba(255,195,68,0.52)');
+  headGlow.addColorStop(0.12,'rgba(238,148,40,0.30)');
+  headGlow.addColorStop(0.35,'rgba(190,92,20,0.12)');
+  headGlow.addColorStop(0.65,'rgba(120,50,8,0.04)');
+  headGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = headGlow; ctx.fillRect(0, 0, W, H);
+
+  // ── MOUNTAIN — same island mass but seen from further inland — higher, smaller, hazier ──
+  // Writer is now at distance: the bg mountain sits higher on the horizon and recedes.
+  function mtPath2() {
+    ctx.moveTo(W*0.38, H*0.520);
+    ctx.bezierCurveTo(W*0.40, H*0.490, W*0.415,H*0.468, W*0.432,H*0.448);
+    ctx.bezierCurveTo(W*0.448,H*0.428, W*0.462,H*0.442, W*0.476,H*0.418);
+    ctx.bezierCurveTo(W*0.492,H*0.394, W*0.506,H*0.376, W*0.520,H*0.360); // main left peak — higher/smaller
+    ctx.bezierCurveTo(W*0.533,H*0.346, W*0.542,H*0.360, W*0.554,H*0.372);
+    ctx.bezierCurveTo(W*0.566,H*0.384, W*0.576,H*0.362, W*0.590,H*0.346); // main right peak
+    ctx.bezierCurveTo(W*0.604,H*0.330, W*0.614,H*0.348, W*0.626,H*0.360);
+    ctx.bezierCurveTo(W*0.642,H*0.374, W*0.660,H*0.354, W*0.682,H*0.366);
+    ctx.bezierCurveTo(W*0.706,H*0.378, W*0.736,H*0.358, W*0.772,H*0.372);
+    ctx.bezierCurveTo(W*0.810,H*0.386, W*0.856,H*0.370, W*0.900,H*0.382);
+    ctx.bezierCurveTo(W*0.940,H*0.393, W*0.972,H*0.406, W,      H*0.422);
+    ctx.lineTo(W, H); ctx.lineTo(W*0.34, H); ctx.closePath();
+  }
+
+  // Base fill — unified dark mass
+  const mtGrad2 = ctx.createLinearGradient(W*0.58, H*0.32, W*0.75, H*0.54);
+  mtGrad2.addColorStop(0,   'rgba(20,32,18,1)');
+  mtGrad2.addColorStop(0.28,'rgba(14,24,14,1)');
+  mtGrad2.addColorStop(0.65,'rgba(10,18,11,1)');
+  mtGrad2.addColorStop(1,   'rgba(6,12,8,1)');
+  ctx.fillStyle = mtGrad2;
+  ctx.beginPath(); mtPath2(); ctx.fill();
+
+  // Aerial haze — heavier than Scene 1 because the mountain is further away
+  const mtHaze2 = ctx.createLinearGradient(W*0.44, H*0.30, W*0.44, H*0.52);
+  mtHaze2.addColorStop(0,   'rgba(26,38,65,0.52)');
+  mtHaze2.addColorStop(0.38,'rgba(18,28,50,0.26)');
+  mtHaze2.addColorStop(1,   'rgba(8,14,24,0.00)');
+  ctx.fillStyle = mtHaze2;
+  ctx.beginPath(); mtPath2(); ctx.fill();
+
+  // Warm sun-catch on peak faces — adjusted for more distant, higher mountain
+  ctx.save(); ctx.globalAlpha = 0.20 * alpha;
+  const peakGlow2 = ctx.createRadialGradient(W*0.59, H*0.350, 0, W*0.59, H*0.42, W*0.22);
+  peakGlow2.addColorStop(0,   'rgba(255,190,62,0.44)');
+  peakGlow2.addColorStop(0.28,'rgba(220,148,36,0.16)');
+  peakGlow2.addColorStop(0.60,'rgba(180,105,18,0.04)');
+  peakGlow2.addColorStop(1,   'transparent');
+  ctx.fillStyle = peakGlow2;
+  ctx.beginPath(); mtPath2(); ctx.fill();
+  ctx.restore();
+
+  // Sea-base mist — softer dissolve, mountain is further so mist is thicker
+  const mistBase2 = ctx.createLinearGradient(W*0.38, H*0.48, W*0.38, H*0.53);
+  mistBase2.addColorStop(0, 'transparent');
+  mistBase2.addColorStop(1, 'rgba(12,26,44,0.42)');
+  ctx.fillStyle = mistBase2;
+  ctx.fillRect(W*0.32, H*0.48, W*0.68, H*0.06);
+
+  // Waves — same frequency, speed, amp as Scene 1 (ocean continuity)
+  // Slightly lower amplitude than Scene 1 because we're more inland/sheltered
+  const WAVE_LAYERS_2 = [
+    { amp: 18, freq: 0.008, speed: 1.1, y: 0.54, col: [20,55,100], a: 0.88 },
+    { amp: 13, freq: 0.013, speed: 1.6, y: 0.58, col: [15,45,85],  a: 0.94 },
+    { amp:  9, freq: 0.018, speed: 2.1, y: 0.61, col: [10,32,65],  a: 0.98 },
+    { amp:  6, freq: 0.025, speed: 2.8, y: 0.64, col: [8,24,50],   a: 1.0  },
+    { amp:  4, freq: 0.032, speed: 3.4, y: 0.67, col: [6,18,38],   a: 1.0  },
+  ];
+  WAVE_LAYERS_2.forEach(w => {
+    ctx.beginPath();
+    const by = H * w.y;
+    ctx.moveTo(0, by);
+    for (let x = 0; x <= W; x += 3) {
+      const y = by + Math.sin(x*w.freq + t*w.speed) * w.amp
+                   + Math.sin(x*w.freq*1.6 + t*w.speed*0.7) * w.amp*0.4
+                   + Math.sin(x*w.freq*0.4 + t*w.speed*1.3) * w.amp*0.3;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+    ctx.fillStyle = `rgba(${w.col[0]},${w.col[1]},${w.col[2]},${w.a})`; ctx.fill();
+  });
+
+  // Wave foam crests — same style as Scene 1, waves hitting the coast
+  for (let i = 0; i < 5; i++) {
+    const wy = H*(0.60 + i*0.024);
+    ctx.beginPath(); ctx.moveTo(0, wy);
+    for (let x = 0; x <= W; x += 3) {
+      const y = wy + Math.sin(x*0.014 + t*(1.2+i*0.3)) * 9
+                   + Math.sin(x*0.025 + t*(0.8+i*0.2)) * 4;
+      ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgba(200,222,242,${(0.13 - i*0.020)*alpha})`;
+    ctx.lineWidth = 1.4 - i*0.18; ctx.stroke();
+  }
+
+  // ── SHORELINE — sea to the left; terrain rises rightward (inland/uphill) ──
+  // shoreY = where sea meets land. The sea side (left) is low/flat;
+  // the land side (right) is higher because the hillside rises.
+  function shoreY(xFrac) {
+    const x = xFrac;
+    // Sea occupies bottom-left; shoreline rises toward upper-left horizon
+    return H * (0.840 - 0.200*x - 0.045*Math.sin(x*Math.PI*1.05 + 0.1) + 0.014*Math.sin(x*Math.PI*2.8 + 0.6));
+  }
+
+  // hillsideY = top surface of the rising terrain on the road's right side.
+  // This creates the mountain-road feel: the hillside rises steeply inland.
+  function hillsideY(xFrac) {
+    const x = xFrac;
+    // Starts at bottom center, rises sharply rightward like a slope
+    return H * (0.910 - 0.38*(x - 0.28) - 0.030*Math.sin(x*Math.PI*2.2 + 0.3));
+  }
+
+  // ── LAND BASE — coastal grass/earth from shore up to hillside ──
+  const landGrad = ctx.createLinearGradient(0, H*0.72, W, H*0.72);
+  landGrad.addColorStop(0,   'rgba(22,32,26,1)');
+  landGrad.addColorStop(0.25,'rgba(17,26,20,1)');
+  landGrad.addColorStop(0.55,'rgba(13,20,15,1)');
+  landGrad.addColorStop(0.78,'rgba(9,15,11,1)');
+  landGrad.addColorStop(1,   'rgba(6,11,8,1)');
+  ctx.fillStyle = landGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  ctx.lineTo(0, shoreY(0));
+  for (let xi = 0; xi <= 100; xi++) {
+    ctx.lineTo((xi/100)*W, shoreY(xi/100));
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+
+  // ── HILLSIDE RISING BANK — the inland slope that the road climbs alongside ──
+  // This is the key mountain-road element: a solid rising mass on the right/upper side
+  // of the road, blending with the terrain naturally like rocks-and-grass hillside.
+  const hillGrad = ctx.createLinearGradient(W*0.26, H*0.91, W*0.88, H*0.62);
+  hillGrad.addColorStop(0,   'rgba(16,24,18,1)');
+  hillGrad.addColorStop(0.30,'rgba(11,18,13,1)');
+  hillGrad.addColorStop(0.65,'rgba(8,14,10,1)');
+  hillGrad.addColorStop(1,   'rgba(5,10,7,1)');
+  ctx.fillStyle = hillGrad;
+  ctx.beginPath();
+  ctx.moveTo(W*0.28, H);
+  // Hillside top edge — rises steeply from the crossroads area to forest level
+  ctx.bezierCurveTo(W*0.30, H*0.905, W*0.34, H*0.870, W*0.40, H*0.838);
+  ctx.bezierCurveTo(W*0.48, H*0.800, W*0.56, H*0.770, W*0.65, H*0.745);
+  ctx.bezierCurveTo(W*0.74, H*0.724, W*0.84, H*0.706, W*0.98, H*0.692);
+  ctx.lineTo(W, H*0.692); ctx.lineTo(W, H);
+  ctx.closePath(); ctx.fill();
+
+  // Hillside surface shading — depth and texture on the slope
+  ctx.save(); ctx.globalAlpha = 0.40 * alpha;
+  const slopeShade = ctx.createLinearGradient(W*0.28, H*0.91, W*0.28, H*0.70);
+  slopeShade.addColorStop(0,   'rgba(6,12,8,0)');
+  slopeShade.addColorStop(0.40,'rgba(4,8,6,0.30)');
+  slopeShade.addColorStop(1,   'rgba(2,5,4,0.55)');
+  ctx.fillStyle = slopeShade;
+  ctx.beginPath();
+  ctx.moveTo(W*0.28, H);
+  ctx.bezierCurveTo(W*0.30, H*0.905, W*0.34, H*0.870, W*0.40, H*0.838);
+  ctx.bezierCurveTo(W*0.48, H*0.800, W*0.56, H*0.770, W*0.65, H*0.745);
+  ctx.bezierCurveTo(W*0.74, H*0.724, W*0.84, H*0.706, W*0.98, H*0.692);
+  ctx.lineTo(W, H*0.692); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Terrain undulation — original gentle roll on the sea-side land
+  ctx.fillStyle = 'rgba(14,22,17,0.40)';
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  ctx.quadraticCurveTo(W*0.12, shoreY(0.12) + H*0.048, W*0.28, shoreY(0.28) + H*0.062);
+  ctx.quadraticCurveTo(W*0.38, shoreY(0.38) + H*0.040, W*0.48, H);
+  ctx.closePath(); ctx.fill();
+
+  // ── PATH CENTERLINE — organic coastal stone pathway ──
+  // Emerges near the narrator's feet, curves inland following the hillside.
+  // prog=0 near viewer (bottom), prog=1 disappears into forest.
+
+  function pathCenterX(prog) {
+    if (prog < 0) {
+      // Extension backward: worn trail comes in from bottom-left corner
+      const t0x = W*(0.34 + 0.018*Math.sin(0.4) + 0.010*Math.sin(1.1));
+      const sweep = -prog;
+      return t0x - sweep * W * 0.82 + sweep*sweep * W * 0.60;
+    }
+    // Coast-hugging phase (prog 0→0.20): path drifts slowly rightward, staying
+    // close to the shoreline before peeling inland. Blend factor eases it in.
+    // Inland phase (prog 0.20→PATH_FAR): original diagonal + undulation.
+    const coastBlend = Math.min(prog / 0.20, 1.0);        // 0 at shore, 1 at turn
+    const eased = coastBlend * coastBlend * (3 - 2*coastBlend); // smoothstep
+
+    // Original inland path (unchanged from v19)
+    const base = W*(0.34 + prog*0.32);
+    const undulate = W*(0.022*Math.sin(prog*Math.PI*1.8 + 0.4)
+                      + 0.012*Math.sin(prog*Math.PI*3.2 + 1.1)
+                      + 0.008*Math.sin(prog*Math.PI*0.9 + 2.2));
+    const originalX = base + undulate;
+
+    // Coastal start: path begins slightly to the left (closer to shore),
+    // then blends into the normal trajectory by prog=0.20
+    const shoreOffset = W * 0.045 * (1.0 - eased); // max ~4.5% leftward pull near shore
+    return originalX - shoreOffset;
+  }
+  function pathCenterY(prog) {
+    if (prog < 0) {
+      const t0y = H*(0.910 - 0.008*Math.sin(0.5) - 0.004*Math.sin(0.8));
+      const sweep = -prog;
+      return t0y + sweep * H * 0.26 + sweep*sweep * H * 0.30;
+    }
+    // Original Y (unchanged from v19) — climb + ripple
+    const climb = H*(0.910 - 0.295*Math.pow(prog, 0.72));
+    const ripple = H*(-0.008*Math.sin(prog*Math.PI*2.1 + 0.5)
+                     - 0.004*Math.sin(prog*Math.PI*4.0 + 0.8));
+    // Near coast (prog 0→0.18): path stays slightly flatter (follows shore contour)
+    // before climbing. Subtract a small amount from the climb to delay the ascent.
+    const coastFlatness = Math.max(0, 1.0 - prog / 0.18);
+    const flat = coastFlatness * coastFlatness * H * 0.028; // max ~2.8% H flatter
+    return climb + ripple + flat;
+  }
+  function pathHW(prog) {
+    const clampedProg = Math.max(prog, -0.35);
+    if (clampedProg < 0) {
+      return W*(0.022 * (1 + (-clampedProg)*2.2));
+    }
+    // Narrow near the coast (worn trail feel), normal width mid-path, tapers at far end
+    const baseW = 0.022*(1 - prog*0.60);
+    const coastNarrow = prog < 0.18 ? (1.0 - (1.0 - prog/0.18)*0.38) : 1.0;
+    return W * baseW * coastNarrow;
+  }
+  // Road ends at this prog — comfortably inland from the shoreline
+  const PATH_FAR = 0.60;
+
+  // ── STONE PATH — organic coastal weathered slabs embedded in hillside ──
+  // Draw the path surface first (under grass/rocks), then stones on top
+  {
+    // Path base soil — earthy tone, slightly lighter than surrounding grass
+    ctx.save();
+    ctx.beginPath();
+    // Road extends from prog=-0.35 (bottom-left corner entry) to PATH_FAR (inland terminus)
+    const steps = 100;
+    const PROG_NEAR = -0.35;
+    const PROG_FAR  = PATH_FAR;
+
+    function pathEdgePt(p, side) {
+      const hw = pathHW(p);
+      const cx2 = pathCenterX(p);
+      const cy2 = pathCenterY(p);
+      const dp = 0.025;
+      const dpx = pathCenterX(Math.min(p+dp,PROG_FAR)) - pathCenterX(Math.max(p-dp,PROG_NEAR));
+      const dpy = pathCenterY(Math.min(p+dp,PROG_FAR)) - pathCenterY(Math.max(p-dp,PROG_NEAR));
+      const len = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+      const nx = -dpy/len, ny = dpx/len;
+      const jitter = side > 0
+        ? W*0.004*Math.sin(p*17.3 + 1.1)
+        : W*0.005*Math.sin(p*13.7 + 2.4);
+      return [cx2 + nx*(hw*1.08 + jitter)*side, cy2 + ny*(hw*1.08 + jitter)*side];
+    }
+
+    // Left edge (sea side) — forward pass from NEAR to FAR
+    {
+      const [sx0, sy0] = pathEdgePt(PROG_NEAR, 1);
+      ctx.moveTo(sx0, sy0);
+    }
+    for (let i=1; i<=steps; i++) {
+      const p = PROG_NEAR + (PROG_FAR - PROG_NEAR) * (i/steps);
+      const [ex, ey] = pathEdgePt(p, 1);
+      ctx.lineTo(ex, ey);
+    }
+    // Round cap at far end blending road into land
+    {
+      const [farLx, farLy] = pathEdgePt(PROG_FAR, 1);
+      const [farRx, farRy] = pathEdgePt(PROG_FAR, -1);
+      ctx.lineTo(farLx, farLy);
+      ctx.quadraticCurveTo(pathCenterX(PROG_FAR), pathCenterY(PROG_FAR) - pathHW(PROG_FAR)*0.5, farRx, farRy);
+    }
+    // Right edge (inland/hill side) — backward pass from FAR to NEAR
+    for (let i=steps-1; i>=0; i--) {
+      const p = PROG_NEAR + (PROG_FAR - PROG_NEAR) * (i/steps);
+      const [ex, ey] = pathEdgePt(p, -1);
+      ctx.lineTo(ex, ey);
+    }
+    ctx.closePath();
+    // Soil/earth fill — near the coast the path is barely distinguishable from
+    // the surrounding ground (just a worn strip). Further inland it gains
+    // a slightly warmer earth tone as it becomes a more defined footpath.
+    const soilGrad = ctx.createLinearGradient(pathCenterX(-0.35), pathCenterY(-0.35), pathCenterX(PATH_FAR), pathCenterY(PATH_FAR));
+    soilGrad.addColorStop(0,    'rgba(20,18,15,0.80)');  // very muted near entry — barely visible
+    soilGrad.addColorStop(0.18, 'rgba(22,19,15,0.88)');  // still muted along coastal hug
+    soilGrad.addColorStop(0.36, 'rgba(28,23,17,1)');     // warming slightly as path turns inland
+    soilGrad.addColorStop(0.55, 'rgba(24,20,16,1)');
+    soilGrad.addColorStop(0.72, 'rgba(16,20,14,1)');     // transitioning to terrain
+    soilGrad.addColorStop(0.88, 'rgba(10,16,12,1)');     // almost terrain colour
+    soilGrad.addColorStop(1.00, 'rgba(8,13,10,1)');      // fully absorbed into land
+    ctx.fillStyle = soilGrad;
+    ctx.fill();
+    ctx.restore();
+
+    // ── STONE SLABS — irregular weathered coastal rock ──
+    // Placed along the path at varying spacings with organic shapes
+    if (!drawScene2._stones) {
+      const stoneData = [];
+      const slabCount = 28;
+      for (let i=0; i<slabCount; i++) {
+        const p = -0.30 + (i/slabCount)*(PATH_FAR + 0.30 - 0.04);
+        stoneData.push({
+          p,
+          offN: (Math.random()-0.5)*0.4,   // lateral offset from center (-0.5 to 0.5 of hw)
+          rot:  (Math.random()-0.5)*0.38,   // slab rotation
+          scaleW: 0.65 + Math.random()*0.55,
+          scaleH: 0.45 + Math.random()*0.45,
+          bright: 0.55 + Math.random()*0.30,
+          shape: Math.random()              // for irregular polygon
+        });
+      }
+      drawScene2._stones = stoneData;
+    }
+
+    drawScene2._stones.forEach(s => {
+      const p = s.p;
+
+      // Fade stones out starting at 55% of path length — gradual dissolve into terrain
+      const FADE_START = PATH_FAR * 0.55;
+      const stoneFade = p < FADE_START ? 1.0
+        : Math.pow(1.0 - Math.min((p - FADE_START) / (PATH_FAR - FADE_START), 1.0), 1.4);
+      if (stoneFade < 0.04) return; // fully dissolved, skip
+
+      const cx2 = pathCenterX(p);
+      const cy2 = pathCenterY(p);
+      const hw = pathHW(p);
+      const dpx = pathCenterX(Math.min(p+0.02,PATH_FAR)) - pathCenterX(Math.max(p-0.02,-0.35));
+      const dpy = pathCenterY(Math.min(p+0.02,PATH_FAR)) - pathCenterY(Math.max(p-0.02,-0.35));
+      const len = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+      const nx = -dpy/len, ny = dpx/len;
+
+      const sx = cx2 + nx*s.offN*hw;
+      const sy = cy2 + ny*s.offN*hw;
+      const slabW = hw * 1.20 * s.scaleW;
+      const slabH = hw * 0.52 * s.scaleH;
+      const tAngle = Math.atan2(dpy, dpx);
+
+      ctx.save();
+      ctx.globalAlpha = stoneFade * alpha;
+      ctx.translate(sx, sy);
+      ctx.rotate(tAngle + s.rot);
+
+      ctx.fillStyle = 'rgba(4,6,4,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(2, 3, slabW*0.88, slabH*0.70, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      const br = s.bright;
+      const stoneGrad = ctx.createRadialGradient(-slabW*0.2, -slabH*0.2, 0, 0, 0, slabW*0.8);
+      stoneGrad.addColorStop(0,   `rgba(${(52*br)|0},${(50*br)|0},${(44*br)|0},1)`);
+      stoneGrad.addColorStop(0.5, `rgba(${(38*br)|0},${(36*br)|0},${(32*br)|0},1)`);
+      stoneGrad.addColorStop(1,   `rgba(${(24*br)|0},${(22*br)|0},${(20*br)|0},1)`);
+      ctx.fillStyle = stoneGrad;
+
+      const pts8 = [];
+      const segs = 8;
+      for (let k=0; k<segs; k++) {
+        const ang = (k/segs)*Math.PI*2;
+        const rJit = 0.78 + 0.22*Math.sin(ang*(2+s.shape*2) + s.rot*3);
+        pts8.push([Math.cos(ang)*slabW*rJit, Math.sin(ang)*slabH*rJit]);
+      }
+      ctx.beginPath();
+      ctx.moveTo(pts8[0][0], pts8[0][1]);
+      for (let k=1; k<segs; k++) ctx.lineTo(pts8[k][0], pts8[k][1]);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(${(62*br)|0},${(60*br)|0},${(52*br)|0},0.45)`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      if (s.bright > 0.72) {
+        ctx.fillStyle = 'rgba(28,44,24,0.38)';
+        ctx.beginPath();
+        ctx.ellipse(-slabW*0.28, slabH*0.15, slabW*0.22, slabH*0.18, 0.4, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    });
+
+    // ── COASTAL SECTION SOFTENING — grass patches growing INTO path near shore ──
+    {
+      // Grass patches growing INTO path surface near coast (prog -0.05 to 0.20)
+      if (!drawScene2._coastalPathGrass) {
+        drawScene2._coastalPathGrass = Array.from({length: 38}, () => ({
+          p: -0.05 + Math.random() * 0.24,
+          offN: (Math.random() - 0.5) * 1.6,
+          h: 0.005 + Math.random() * 0.012,
+          lean: (Math.random() - 0.5) * 0.6,
+          phase: Math.random() * Math.PI * 2,
+          col: Math.random()
+        }));
+      }
+      drawScene2._coastalPathGrass.forEach(g => {
+        const pC = g.p;
+        const cx2 = pathCenterX(pC), cy2 = pathCenterY(pC);
+        const hw = pathHW(pC);
+        const dpx = pathCenterX(Math.min(pC+0.02,0.22)) - pathCenterX(Math.max(pC-0.02,-0.35));
+        const dpy = pathCenterY(Math.min(pC+0.02,0.22)) - pathCenterY(Math.max(pC-0.02,-0.35));
+        const ll = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+        const nx = -dpy/ll, ny = dpx/ll;
+        const gx2 = cx2 + nx * g.offN * hw;
+        const gy2 = cy2 + ny * g.offN * hw;
+        const coastFade = Math.max(0, 1.0 - (pC + 0.05) / 0.24);
+        const ga = (0.35 + 0.25 * coastFade) * alpha;
+        const sway = Math.sin(t * 0.75 + g.phase) * 0.03 + g.lean;
+        ctx.strokeStyle = g.col > 0.5 ? `rgba(22,46,28,${ga})` : `rgba(18,38,24,${ga})`;
+        ctx.lineWidth = 0.8; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(gx2, gy2);
+        ctx.quadraticCurveTo(gx2 + sway*W*0.025, gy2 - g.h*H*0.55, gx2 + sway*W*0.040, gy2 - g.h*H);
+        ctx.stroke();
+      });
+
+      // Partially-buried stones in coastal path — sinking into soft earth near shore
+      if (!drawScene2._coastalSunkStones) {
+        drawScene2._coastalSunkStones = Array.from({length: 10}, () => ({
+          p: 0.01 + Math.random() * 0.18,
+          offN: (Math.random() - 0.5) * 0.9,
+          rx: 0.006 + Math.random() * 0.009,
+          ry: 0.003 + Math.random() * 0.005,
+          rot: Math.random() * Math.PI,
+          buried: 0.55 + Math.random() * 0.35
+        }));
+      }
+      drawScene2._coastalSunkStones.forEach(s => {
+        const cx2 = pathCenterX(s.p), cy2 = pathCenterY(s.p);
+        const hw = pathHW(s.p);
+        const dpx = pathCenterX(Math.min(s.p+0.02,0.22)) - pathCenterX(Math.max(s.p-0.02,-0.10));
+        const dpy = pathCenterY(Math.min(s.p+0.02,0.22)) - pathCenterY(Math.max(s.p-0.02,-0.10));
+        const ll = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+        const nx = -dpy/ll, ny = dpx/ll;
+        const sx = cx2 + nx * s.offN * hw;
+        const sy = cy2 + ny * s.offN * hw;
+        const br = 1.0 - s.buried * 0.55;
+        ctx.save();
+        ctx.globalAlpha = (0.45 + 0.20 * br) * alpha;
+        ctx.fillStyle = `rgba(${(14*br+6)|0},${(14*br+5)|0},${(12*br+4)|0},1)`;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy + s.ry*H*0.3, s.rx*W, s.ry*H*0.55, s.rot, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    // ── GRASS & SOIL OVERLAPPING PATH EDGES — embeds path in landscape ──
+    // Dense natural tufts intrude over both stone edges; the sea-side edge
+    // also receives a soft soil bleed so the path melts into the shoulder grass.
+    if (!drawScene2._pathEdgeGrass) {
+      const edgeGrass = [];
+      for (let i=0; i<68; i++) {
+        const p = -0.28 + Math.random()*(PATH_FAR + 0.28 - 0.04);
+        // Bias toward sea-side edge (side=1) near the far end for natural shore blending
+        const seaBias = p > 0.35 ? 0.72 : 0.50;
+        const side = Math.random() < seaBias ? 1 : -1;
+        edgeGrass.push({
+          p,
+          side,
+          offN: (0.75 + Math.random()*0.45) * side,  // some blades overlap path more
+          h: 0.007 + Math.random()*0.018,
+          lean: (Math.random()-0.5)*0.45,
+          phase: Math.random()*Math.PI*2,
+          thick: 0.6 + Math.random()*0.6  // blade width variation
+        });
+      }
+      drawScene2._pathEdgeGrass = edgeGrass;
+    }
+
+    drawScene2._pathEdgeGrass.forEach(g => {
+      const p = g.p;
+      const cx2 = pathCenterX(p);
+      const cy2 = pathCenterY(p);
+      const hw = pathHW(p);
+      const dpx = pathCenterX(Math.min(p+0.02,PATH_FAR)) - pathCenterX(Math.max(p-0.02,-0.35));
+      const dpy = pathCenterY(Math.min(p+0.02,PATH_FAR)) - pathCenterY(Math.max(p-0.02,-0.35));
+      const ll = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+      const nx = -dpy/ll, ny = dpx/ll;
+
+      const gx2 = cx2 + nx*g.offN*hw;
+      const gy2 = cy2 + ny*g.offN*hw;
+
+      const sway = Math.sin(t*0.75 + g.phase)*0.035 + g.lean;
+      // Sea-side tufts slightly lighter/more yellow-green (sun-bleached coastal grass)
+      const isSeaSide = g.side > 0;
+      const col = isSeaSide
+        ? `rgba(26,50,30,${0.48 * alpha})`
+        : `rgba(20,44,26,${0.44 * alpha})`;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = g.thick * 0.9; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(gx2, gy2);
+      ctx.quadraticCurveTo(gx2 + sway*W*0.030, gy2 - g.h*H*0.55, gx2 + sway*W*0.048, gy2 - g.h*H);
+      ctx.stroke();
+    });
+
+    // Soil bleed along sea-side edge — soft earth tone bleeds from path onto shoulder
+    // This eliminates any hard boundary where path stone meets grass
+    {
+      const bleedSteps = 40;
+      ctx.save();
+      for (let i = 0; i < bleedSteps; i++) {
+        const p = 0.05 + (i / bleedSteps) * (PATH_FAR - 0.08);
+        const cx2 = pathCenterX(p), cy2 = pathCenterY(p);
+        const hw = pathHW(p);
+        const dpx = pathCenterX(Math.min(p+0.02,PATH_FAR)) - pathCenterX(Math.max(p-0.02,-0.35));
+        const dpy = pathCenterY(Math.min(p+0.02,PATH_FAR)) - pathCenterY(Math.max(p-0.02,-0.35));
+        const ll = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+        const nx2 = -dpy/ll, ny2 = dpx/ll;
+        // Paint a tiny ellipse of earth just outside the sea-side edge
+        const ex = cx2 + nx2 * hw * 1.15;
+        const ey = cy2 + ny2 * hw * 1.15;
+        const soilA = (0.10 + 0.08 * Math.sin(i * 0.73)) * alpha;
+        ctx.fillStyle = `rgba(30,24,18,${soilA})`;
+        ctx.beginPath();
+        ctx.ellipse(ex, ey, hw * 0.30, hw * 0.18, Math.atan2(dpy, dpx), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Small pebbles/rocks at path edges
+    [[-0.20,0.04],[-0.08,-0.05],[0.12,0.04],[0.21,-0.05],[0.38,0.06],[0.55,-0.04],[0.65,0.05]].forEach(([pp,offFrac]) => {
+      const cx2 = pathCenterX(pp);
+      const cy2 = pathCenterY(pp);
+      const hw = pathHW(pp);
+      const dpx = pathCenterX(Math.min(pp+0.02,PATH_FAR)) - pathCenterX(Math.max(pp-0.02,-0.35));
+      const dpy = pathCenterY(Math.min(pp+0.02,PATH_FAR)) - pathCenterY(Math.max(pp-0.02,-0.35));
+      const ll = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+      const nx = -dpy/ll, ny = dpx/ll;
+      const rx = cx2 + nx*(hw*(0.9 + offFrac));
+      const ry = cy2 + ny*(hw*(0.9 + offFrac));
+      ctx.fillStyle = 'rgba(28,26,22,0.70)';
+      ctx.beginPath(); ctx.ellipse(rx, ry, hw*0.28, hw*0.18, pp*2.1, 0, Math.PI*2); ctx.fill();
+    });
+  }
+
+  // ── ROAD ENTRY BLEND — near end fades in from terrain using slice overlay ──
+  {
+    const ENTRY_NEAR = -0.35;
+    const ENTRY_FAR  = -0.08;
+    const SLICES = 36;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    for (let i = 0; i < SLICES; i++) {
+      const frac = i / SLICES;  // 0 = ENTRY_NEAR, 1 = ENTRY_FAR
+      const p    = ENTRY_NEAR + (ENTRY_FAR - ENTRY_NEAR) * frac;
+      const pN   = ENTRY_NEAR + (ENTRY_FAR - ENTRY_NEAR) * ((i + 1) / SLICES);
+      // Opaque at ENTRY_NEAR, transparent at ENTRY_FAR
+      const sliceA = Math.pow(1.0 - frac, 1.4);
+
+      const hw  = pathHW(p);
+      const hwN = pathHW(pN);
+      const cx  = pathCenterX(p),  cy  = pathCenterY(p);
+      const cxN = pathCenterX(pN), cyN = pathCenterY(pN);
+      const dpx = cxN - cx, dpy = cyN - cy;
+      const ll  = Math.sqrt(dpx * dpx + dpy * dpy) || 1;
+      const nx  = -dpy / ll, ny = dpx / ll;
+      const MARGIN = 1.4;
+
+      const l0x = cx  + nx * hw  * MARGIN, l0y = cy  + ny * hw  * MARGIN;
+      const r0x = cx  - nx * hw  * MARGIN, r0y = cy  - ny * hw  * MARGIN;
+      const l1x = cxN + nx * hwN * MARGIN, l1y = cyN + ny * hwN * MARGIN;
+      const r1x = cxN - nx * hwN * MARGIN, r1y = cyN - ny * hwN * MARGIN;
+
+      ctx.fillStyle = `rgba(14,20,16,${sliceA})`;
+      ctx.beginPath();
+      ctx.moveTo(l0x, l0y);
+      ctx.lineTo(l1x, l1y);
+      ctx.lineTo(r1x, r1y);
+      ctx.lineTo(r0x, r0y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── ROAD FAR-END BLEND — hillside colour washes over the path terminus ──
+  // No clipping paths. Just a series of thin cross-slices painted with the
+  // hillside dark-grass colour, each one slightly more opaque as we approach
+  // PATH_FAR. The path soil simply disappears under the terrain wash.
+  {
+    const FAR_START = PATH_FAR - 0.28;  // start blend even earlier for very gradual fade
+    const FAR_END   = PATH_FAR;
+    const SLICES    = 50;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    for (let i = 0; i < SLICES; i++) {
+      const frac = i / SLICES;
+      const p    = FAR_START + (FAR_END - FAR_START) * frac;
+      const pN   = FAR_START + (FAR_END - FAR_START) * ((i + 1) / SLICES);
+      const sliceA = Math.pow(frac, 1.6);  // gentle ease — slow start, firm finish
+
+      const hw  = pathHW(p);
+      const hwN = pathHW(pN);
+      const cx  = pathCenterX(p),  cy  = pathCenterY(p);
+      const cxN = pathCenterX(pN), cyN = pathCenterY(pN);
+      const dpx = cxN - cx, dpy = cyN - cy;
+      const ll  = Math.sqrt(dpx * dpx + dpy * dpy) || 1;
+      const nx  = -dpy / ll, ny = dpx / ll;
+      const MARGIN = 1.4;  // just past path edges, no wider
+
+      // Four corners of this thin slice (widened past path edges)
+      const l0x = cx  + nx * hw  * MARGIN, l0y = cy  + ny * hw  * MARGIN;
+      const r0x = cx  - nx * hw  * MARGIN, r0y = cy  - ny * hw  * MARGIN;
+      const l1x = cxN + nx * hwN * MARGIN, l1y = cyN + ny * hwN * MARGIN;
+      const r1x = cxN - nx * hwN * MARGIN, r1y = cyN - ny * hwN * MARGIN;
+
+      ctx.fillStyle = `rgba(10,16,12,${sliceA})`;
+      ctx.beginPath();
+      ctx.moveTo(l0x, l0y);
+      ctx.lineTo(l1x, l1y);
+      ctx.lineTo(r1x, r1y);
+      ctx.lineTo(r0x, r0y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Grass tufts growing over the fading path end
+    if (!drawScene2._farEndGrass) {
+      drawScene2._farEndGrass = Array.from({length: 32}, () => ({
+        p:    FAR_START + Math.random() * (PATH_FAR - FAR_START + 0.04),
+        offN: (Math.random() - 0.5) * 2.2,
+        h:    0.010 + Math.random() * 0.020,
+        lean: (Math.random() - 0.5) * 0.5,
+        phase: Math.random() * Math.PI * 2,
+        col:  Math.random()
+      }));
+    }
+    drawScene2._farEndGrass.forEach(g => {
+      const pC  = Math.min(g.p, PATH_FAR);
+      const cx2 = pathCenterX(pC), cy2 = pathCenterY(pC);
+      const hw2 = pathHW(pC);
+      const dpx = pathCenterX(Math.min(pC + 0.02, PATH_FAR)) - pathCenterX(Math.max(pC - 0.02, FAR_START));
+      const dpy = pathCenterY(Math.min(pC + 0.02, PATH_FAR)) - pathCenterY(Math.max(pC - 0.02, FAR_START));
+      const ll  = Math.sqrt(dpx * dpx + dpy * dpy) || 1;
+      const nx  = -dpy / ll, ny = dpx / ll;
+      const gx2 = cx2 + nx * g.offN * hw2;
+      const gy2 = cy2 + ny * g.offN * hw2;
+      const tF  = Math.max(0, (g.p - FAR_START) / (PATH_FAR - FAR_START));
+      const sway = Math.sin(t * 0.8 + g.phase) * 0.038 + g.lean;
+      const ga  = (0.28 + 0.32 * tF) * alpha;
+      ctx.strokeStyle = g.col > 0.5 ? `rgba(22,46,28,${ga})` : `rgba(16,36,22,${ga})`;
+      ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(gx2, gy2);
+      ctx.quadraticCurveTo(gx2 + sway * W * 0.030, gy2 - g.h * H * 0.52, gx2 + sway * W * 0.046, gy2 - g.h * H);
+      ctx.stroke();
+    });
+  }
+
+  // (path helper kept for traveler/lantern positioning)
+
+  // ── COASTAL BOUNDARY — drawn AFTER path so it overlaps the path's near/sea edge ──
+  // Wet sand, wave wash, shore rocks and grassy shoulder all paint on top of the
+  // path start, so the path appears to emerge from the coastal grass rather than
+  // sitting abruptly on top of it.
+
+  // Wet sand at shoreline
+  {
+    const sandBand = ctx.createLinearGradient(0, 0, 0, H);
+    sandBand.addColorStop(0, 'rgba(35,54,50,0)');
+    sandBand.addColorStop(1, 'rgba(25,42,40,0.48)');
+    ctx.fillStyle = sandBand;
+    ctx.beginPath();
+    ctx.moveTo(0, shoreY(0));
+    for (let xi = 0; xi <= 80; xi++) ctx.lineTo((xi/100)*W, shoreY(xi/100));
+    ctx.lineTo(W*0.80, shoreY(0.80) + H*0.038);
+    for (let xi = 79; xi >= 0; xi--) {
+      const thick = H*(0.048 - (xi/100)*0.022);
+      ctx.lineTo((xi/100)*W, shoreY(xi/100) + thick + 3*Math.sin(xi*0.38));
+    }
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Wave wash on sand
+  for (let wi = 0; wi < 3; wi++) {
+    const wPhase = t*0.52 + wi*1.35;
+    const washAmt = Math.sin(wPhase) * 0.5 + 0.5;
+    ctx.beginPath();
+    for (let xi = 0; xi <= 70; xi++) {
+      const xf = xi/100;
+      const wy = shoreY(xf) + H*(0.010 + wi*0.008) + washAmt*H*0.005 + Math.sin(xi*0.4+t)*H*0.002;
+      xi === 0 ? ctx.moveTo(xf*W, wy) : ctx.lineTo(xf*W, wy);
+    }
+    ctx.strokeStyle = `rgba(155,200,232,${(0.09-wi*0.022)*washAmt*alpha})`;
+    ctx.lineWidth = 0.8; ctx.stroke();
+  }
+
+  // Shore rocks — half-buried, clustering near waterline
+  [[0.05,0.833,0.024,0.010,-0.06],[0.12,0.810,0.019,0.008,0.09],
+   [0.20,0.788,0.016,0.007,-0.04],[0.30,0.766,0.021,0.009,0.12],
+   [0.40,0.748,0.015,0.006,-0.07],[0.50,0.730,0.012,0.005,0.05],
+  ].forEach(([rx,ry,rw,rh,ang]) => {
+    const rshadow = ctx.createRadialGradient(rx*W+2, ry*H+4, 0, rx*W, ry*H, rw*W*1.8);
+    rshadow.addColorStop(0, 'rgba(4,8,10,0.48)'); rshadow.addColorStop(1, 'transparent');
+    ctx.fillStyle = rshadow;
+    ctx.beginPath(); ctx.ellipse(rx*W, ry*H+5, rw*W*1.6, rh*H*1.4, ang, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(10,16,20,1)';
+    ctx.beginPath(); ctx.ellipse(rx*W, ry*H, rw*W, rh*H, ang, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(22,32,38,0.55)';
+    ctx.beginPath(); ctx.ellipse(rx*W-rw*W*0.25, ry*H-rh*H*0.30, rw*W*0.55, rh*H*0.40, ang-0.2, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── GRASSY SHOULDER — painted after path so it overlaps path's coastal near-edge ──
+  {
+    const shoulderW = H * 0.055;
+    const shoulderGrad = ctx.createLinearGradient(0, 0, 0, H);
+    shoulderGrad.addColorStop(0,   'rgba(18,32,22,0)');
+    shoulderGrad.addColorStop(0.80,'rgba(16,28,20,0.55)');
+    shoulderGrad.addColorStop(1,   'rgba(13,22,16,0.80)');
+    ctx.fillStyle = shoulderGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, shoreY(0) - shoulderW);
+    for (let xi = 0; xi <= 80; xi++) {
+      const xf = xi / 100;
+      const topY = shoreY(xf) - shoulderW * (0.7 + 0.3 * Math.sin(xi * 0.41 + 1.2));
+      ctx.lineTo(xf * W, topY);
+    }
+    for (let xi = 80; xi >= 0; xi--) {
+      const xf = xi / 100;
+      ctx.lineTo(xf * W, shoreY(xf) + H * 0.004);
+    }
+    ctx.closePath(); ctx.fill();
+
+    if (!drawScene2._shoulder) {
+      drawScene2._shoulder = Array.from({length: 80}, () => ({
+        x: Math.random() * 0.72,
+        yOff: -(0.01 + Math.random() * 0.048),
+        h:    0.006 + Math.random() * 0.013,
+        lean: (Math.random() - 0.5) * 0.5,
+        phase: Math.random() * Math.PI * 2,
+        col: Math.random()
+      }));
+    }
+    drawScene2._shoulder.forEach(g => {
+      const gx2 = g.x * W;
+      const gy2 = shoreY(g.x) + g.yOff * H;
+      if (gy2 > shoreY(g.x)) return;
+      const sway = Math.sin(t * 0.8 + g.phase) * 0.038 + g.lean;
+      const distFromShore = -g.yOff;
+      const density = Math.min(distFromShore / 0.045, 1.0);
+      const ga = (0.28 + 0.18 * density) * alpha;
+      ctx.strokeStyle = g.col > 0.5 ? `rgba(20,44,28,${ga})` : `rgba(26,52,32,${ga})`;
+      ctx.lineWidth = 0.85; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(gx2, gy2);
+      ctx.quadraticCurveTo(gx2 + sway*W*0.030, gy2 - g.h*H*0.50, gx2 + sway*W*0.050, gy2 - g.h*H);
+      ctx.stroke();
+    });
+
+    if (!drawScene2._shoulderPebbles) {
+      drawScene2._shoulderPebbles = Array.from({length: 22}, () => ({
+        x: Math.random() * 0.65,
+        yOff: -(0.005 + Math.random() * 0.035),
+        rx: 0.003 + Math.random() * 0.006,
+        ry: 0.002 + Math.random() * 0.004,
+        rot: Math.random() * Math.PI,
+        br: 0.5 + Math.random() * 0.35
+      }));
+    }
+    drawScene2._shoulderPebbles.forEach(p => {
+      const px = p.x * W;
+      const py = shoreY(p.x) + p.yOff * H;
+      if (py > shoreY(p.x)) return;
+      const br = p.br;
+      ctx.fillStyle = `rgba(${(22*br)|0},${(20*br)|0},${(18*br)|0},0.65)`;
+      ctx.beginPath();
+      ctx.ellipse(px, py, p.rx * W, p.ry * H, p.rot, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // ── UPHILL TERRAIN SLOPE — land rises visibly from left-sea side to right-inland ──
+  // The terrain is not flat; the hillside rises alongside the road, like reference image.
+  // A rising slope contour on the road's inland (right) side gives the mountain-road feel.
+
+  // ── COASTAL GRASS — fills land, grows into path edges ──
+  if (!drawScene2._grass) {
+    drawScene2._grass = Array.from({length: 65}, () => ({
+      x: 0.08 + Math.random()*0.78,
+      y: 0.70 + Math.random()*0.24,
+      h: 0.014 + Math.random()*0.028,
+      lean: (Math.random()-0.5)*0.52,
+      phase: Math.random()*Math.PI*2,
+      col: Math.random() > 0.5 ? 0 : 1
+    }));
+  }
+
+  drawScene2._grass.forEach(g => {
+    const gx2 = g.x*W, gy2 = g.y*H;
+    if (gy2 < shoreY(g.x) + H*0.006) return;
+    const sway = Math.sin(t*0.75 + g.phase)*0.040 + g.lean;
+    const ga = (g.col ? 0.34 : 0.42) + 0.20*Math.sin(g.phase);
+    const col1 = g.col ? `rgba(24,50,32,${ga*alpha})` : `rgba(30,58,36,${ga*alpha})`;
+    const col2 = g.col ? `rgba(18,42,26,${ga*0.65*alpha})` : `rgba(22,48,30,${ga*0.65*alpha})`;
+    ctx.strokeStyle = col1; ctx.lineWidth = 1.0; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(gx2, gy2);
+    ctx.quadraticCurveTo(gx2 + sway*W*0.038, gy2 - g.h*H*0.52, gx2 + sway*W*0.058, gy2 - g.h*H);
+    ctx.stroke();
+    ctx.strokeStyle = col2;
+    ctx.beginPath(); ctx.moveTo(gx2 + 3, gy2 - 2);
+    ctx.quadraticCurveTo(gx2 + 3 + sway*W*0.028, gy2 - g.h*H*0.42, gx2 + sway*W*0.042 + 4, gy2 - g.h*H*0.86);
+    ctx.stroke();
+  });
+
+  // ── TERRAIN BLEND LAYER — softens the seam between shore, grass, and path ──
+  // A subtle wash that transitions sandy shore tones into grassy inland tones,
+  // so the eye never sees a hard boundary where one surface ends and another begins.
+  const blendGrad = ctx.createLinearGradient(0, H*0.70, W*0.65, H*0.94);
+  blendGrad.addColorStop(0,   'rgba(20,36,30,0.00)');
+  blendGrad.addColorStop(0.20,'rgba(22,38,32,0.10)');
+  blendGrad.addColorStop(0.55,'rgba(18,30,26,0.07)');
+  blendGrad.addColorStop(0.80,'rgba(14,24,20,0.05)');
+  blendGrad.addColorStop(1,   'rgba(10,18,15,0.00)');
+  ctx.fillStyle = blendGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, H*0.70);
+  for (let xi = 0; xi <= 100; xi++) ctx.lineTo((xi/100)*W, shoreY(xi/100) - H*0.018);
+  ctx.lineTo(W, H*0.70); ctx.closePath(); ctx.fill();
+
+  // Narrow shoreline softening band — blurs the sand/grass transition
+  const shoreBlend = ctx.createLinearGradient(0, 0, 0, H);
+  shoreBlend.addColorStop(0, 'transparent');
+  shoreBlend.addColorStop(1, 'rgba(16,28,22,0.18)');
+  ctx.fillStyle = shoreBlend;
+  ctx.beginPath();
+  ctx.moveTo(0, shoreY(0) - H*0.005);
+  for (let xi = 0; xi <= 100; xi++) {
+    ctx.lineTo((xi/100)*W, shoreY(xi/100) - H*0.005 + Math.sin(xi*0.28)*H*0.003);
+  }
+  for (let xi = 100; xi >= 0; xi--) {
+    ctx.lineTo((xi/100)*W, shoreY(xi/100) + H*0.009 + Math.cos(xi*0.20)*H*0.002);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Helper: get normal at path parameter p (kept for traveler positioning)
+  function pathNormal(p) {
+    const dpx = pathCenterX(Math.min(p+0.015,PATH_FAR)) - pathCenterX(Math.max(p-0.015,-0.35));
+    const dpy = pathCenterY(Math.min(p+0.015,PATH_FAR)) - pathCenterY(Math.max(p-0.015,-0.35));
+    const len = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+    return { nx: -dpy/len, ny: dpx/len };
+  }
+
+  // ── FOREST — grows from the rising hillside, trees root into the slope ──
+  function drawTree2(tx, ty, tw2, th, dark) {
+    const col = dark ? 'rgba(5,11,7,1)' : 'rgba(8,16,10,1)';
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.ellipse(tx, ty-th*0.48, tw2*0.50, th*0.48, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(tx-tw2*0.30, ty-th*0.34, tw2*0.36, th*0.34, 0.20, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(tx+tw2*0.28, ty-th*0.31, tw2*0.34, th*0.31, -0.18, 0, Math.PI*2); ctx.fill();
+    // Lower canopy lobe — makes tree feel settled on terrain
+    ctx.beginPath(); ctx.ellipse(tx, ty-th*0.15, tw2*0.38, th*0.18, 0.05, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = dark ? 'rgba(3,8,5,1)' : 'rgba(5,10,6,1)';
+    ctx.fillRect(tx-tw2*0.048, ty-th*0.08, tw2*0.096, th*0.20);
+  }
+
+  // Back canopy layer — softer, sits on the upper hillside
+  [
+    {x:0.66,y:0.720,w:0.022,h:0.058},
+    {x:0.73,y:0.700,w:0.026,h:0.072},
+    {x:0.80,y:0.684,w:0.030,h:0.086},
+    {x:0.88,y:0.672,w:0.036,h:0.100},
+    {x:0.97,y:0.660,w:0.042,h:0.114},
+  ].forEach(tr => {
+    ctx.fillStyle='rgba(6,12,8,0.88)';
+    ctx.beginPath(); ctx.ellipse(tr.x*W, tr.y*H-tr.h*H*0.38, tr.w*W*0.48, tr.h*H*0.38,0,0,Math.PI*2); ctx.fill();
+  });
+
+  // Primary trees — rooted into the hillside slope
+  [
+    {x:0.62,y:0.752,w:0.024,h:0.078,d:false},
+    {x:0.69,y:0.730,w:0.030,h:0.098,d:false},
+    // gap here — horizon/glow visible between 0.69 and 0.80
+    {x:0.80,y:0.710,w:0.036,h:0.118,d:true },
+    {x:0.86,y:0.692,w:0.040,h:0.138,d:true },
+    {x:0.91,y:0.676,w:0.044,h:0.154,d:true },
+    {x:0.96,y:0.662,w:0.048,h:0.170,d:true },
+  ].forEach(tr => drawTree2(tr.x*W, tr.y*H, tr.w*W, tr.h*H, tr.d));
+
+  // Undergrowth at forest edge — feathers the hillside/forest transition
+  ctx.fillStyle = 'rgba(5,11,7,0.72)';
+  [[0.60,0.762],[0.65,0.744],[0.71,0.728],
+   [0.82,0.714],[0.88,0.698],[0.93,0.682]].forEach(([bx,by2]) => {
+    ctx.beginPath(); ctx.ellipse(bx*W, by2*H, W*0.018, H*0.012, 0, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Horizon glow visible through the tree gap (between x≈0.69 and x≈0.80)
+  // This is the same warm amber of the unreachable shore — still visible, impossible to ignore
+  const gapGlow = ctx.createRadialGradient(W*0.745, H*0.62, 0, W*0.745, H*0.62, W*0.18);
+  gapGlow.addColorStop(0,   'rgba(255,185,55,0.14)');
+  gapGlow.addColorStop(0.40,'rgba(210,135,28,0.06)');
+  gapGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = gapGlow; ctx.fillRect(W*0.62, H*0.55, W*0.26, H*0.22);
+
+  // Warm amber mist deep in the forest mouth — beckoning, protective
+  const fogGrad = ctx.createRadialGradient(W*0.92, H*0.70, 0, W*0.92, H*0.70, W*0.28);
+  fogGrad.addColorStop(0,   'rgba(255,188,58,0.08)');
+  fogGrad.addColorStop(0.50,'rgba(200,138,28,0.03)');
+  fogGrad.addColorStop(1,   'transparent');
+  ctx.fillStyle = fogGrad; ctx.fillRect(W*0.64, H*0.62, W*0.36, H*0.22);
+
+
+
+  // ── LANTERNS — placed on solid uphill ground beside the climbing road ──
+  // Lantern 1: roadside on the climbing stretch (~45% up)
+  // Lanterns 2 & 3: nestled at the forest treeline (grounded on hillside terrain)
+  function drawLantern2(lx, ly, s, flk) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    // Warm halo — identical sizing to original lnData lanterns
+    const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, 32*s);
+    lg.addColorStop(0,    `rgba(255,210,88,${0.32*flk})`);
+    lg.addColorStop(0.40, `rgba(220,152,44,${0.12*flk})`);
+    lg.addColorStop(1,    'transparent');
+    ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(lx,ly,32*s,0,Math.PI*2); ctx.fill();
+    // Ground pool
+    const gp=ctx.createRadialGradient(lx,ly+6*s,0,lx,ly+6*s,16*s);
+    gp.addColorStop(0,`rgba(255,192,66,${0.14*flk})`); gp.addColorStop(1,'transparent');
+    ctx.fillStyle=gp; ctx.beginPath(); ctx.ellipse(lx,ly+6*s,16*s,4*s,0,0,Math.PI*2); ctx.fill();
+    // Pole
+    ctx.strokeStyle='rgba(45,55,74,0.90)'; ctx.lineWidth=1.4*s;
+    ctx.beginPath(); ctx.moveTo(lx,ly-14*s); ctx.lineTo(lx,ly+3*s); ctx.stroke();
+    // Cap
+    ctx.fillStyle='rgba(96,72,26,1)'; ctx.fillRect(lx-4.5*s,ly-15.5*s,9*s,2.8*s);
+    // Body
+    ctx.fillStyle=`rgba(${(158+(flk*30))|0},${(102+(flk*20))|0},22,${0.90*flk})`;
+    ctx.fillRect(lx-3.2*s,ly-12.8*s,6.4*s,8.5*s);
+    ctx.restore();
+  }
+
+  // Lantern 1 — roadside on the climbing stretch, right of path edge (~45% up)
+  {
+    const lp = 0.52;
+    const pcx = pathCenterX(lp), pcy = pathCenterY(lp), hw = pathHW(lp);
+    const dpx = pathCenterX(Math.min(lp+0.02,PATH_FAR))-pathCenterX(Math.max(lp-0.02,-0.35));
+    const dpy = pathCenterY(Math.min(lp+0.02,PATH_FAR))-pathCenterY(Math.max(lp-0.02,-0.35));
+    const ll = Math.sqrt(dpx*dpx+dpy*dpy)||1;
+    const nx = -dpy/ll, ny = dpx/ll;
+    const lx = pcx - nx*(hw*1.7), ly = pcy - ny*(hw*1.7);
+    const flk = 0.82 + 0.18*Math.sin(t*2.8);
+    drawLantern2(lx, ly, 0.80, flk);
+  }
+
+  // Lantern 2 — nestled at the forest edge, grounded on the hillside
+  {
+    const lx = W*0.615, ly = H*0.770;
+    const flk = 0.80 + 0.20*Math.sin(t*3.1+1.2);
+    drawLantern2(lx, ly, 0.76, flk);
+  }
+
+  // Lantern 3 — further into the treeline, smaller/dimmer, lower on slope
+  {
+    const lx = W*0.820, ly = H*0.724;
+    const flk = 0.72 + 0.18*Math.sin(t*2.6+2.5);
+    drawLantern2(lx, ly, 0.68, flk);
+  }
+
+  // ── TRAVELER — one-third into the path, mid-hesitation ──
+  // Pose intent: feet still on the path, stride slightly arrested.
+  // Lower body faces forward (inland). Upper body and shoulders have rotated
+  // ~35° back toward the sea. Head turns further still — a quiet glance
+  // over the left shoulder. No drama. Just the body revealing what the
+  // mind is trying to suppress.
+  //
+  // COLORING APPROACH:
+  // The environment is dark, so the figure needs to read clearly without
+  // looking out-of-place. Strategy:
+  //   • Coat: desaturated slate-blue (not pure black) — visible against dark land
+  //   • Warm amber rim light on the sea-facing left edge (from the golden horizon)
+  //   • Cool blue-white rim on the right edge (path-side, ambient sky)
+  //   • Face/skin: warm ivory, lit from the golden left
+  //   • Trousers slightly lighter than coat for leg separation
+
+  // Narrator placed ~35% up the climbing road — partway up the hill
+  const travP = 0.35;
+  const hx = pathCenterX(travP);
+  const hy = pathCenterY(travP);
+
+  const pdx = pathCenterX(travP+0.06) - pathCenterX(travP-0.06);
+  const pdy = pathCenterY(travP+0.06) - pathCenterY(travP-0.06);
+  const pathAngle = Math.atan2(pdy, pdx);
+
+  // ── Subtle ambient glow pool at his feet — helps him read against terrain ──
+  ctx.save(); ctx.globalAlpha = 0.55 * alpha;
+  const footGlow = ctx.createRadialGradient(hx, hy+30*sc, 0, hx, hy+30*sc, 38*sc);
+  footGlow.addColorStop(0,   'rgba(180,140,80,0.22)');
+  footGlow.addColorStop(0.5, 'rgba(120,90,50,0.08)');
+  footGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = footGlow;
+  ctx.beginPath(); ctx.ellipse(hx, hy+30*sc, 38*sc, 14*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.save(); ctx.globalAlpha = alpha;
+
+  // Ground shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(hx+4*sc, hy+38*sc, 18*sc, 4*sc, pathAngle*0.4, 0, Math.PI*2); ctx.fill();
+
+  // ── LEGS — facing path direction, slight hesitation: weight on back foot ──
+  const fwdX = Math.cos(pathAngle)*11*sc;
+  const fwdY = Math.sin(pathAngle)*11*sc;
+  const perpX = -Math.sin(pathAngle)*4*sc;
+  const perpY =  Math.cos(pathAngle)*4*sc;
+
+  const trouserCol = 'rgba(44,54,78,1)';
+  const trouserHi  = 'rgba(58,70,96,1)';
+
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // Back leg (sea side, weight-bearing)
+  ctx.strokeStyle = trouserCol; ctx.lineWidth = 7*sc;
+  ctx.beginPath();
+  ctx.moveTo(hx - fwdX*0.3 + perpX, hy + 10*sc + fwdY*0.3);
+  ctx.quadraticCurveTo(hx - fwdX*0.5 + perpX, hy + 24*sc, hx - fwdX*0.6 + perpX, hy + 40*sc);
+  ctx.stroke();
+  ctx.strokeStyle = trouserHi; ctx.lineWidth = 1.5*sc;
+  ctx.beginPath();
+  ctx.moveTo(hx - fwdX*0.3 + perpX - 2*sc, hy + 10*sc + fwdY*0.3);
+  ctx.quadraticCurveTo(hx - fwdX*0.5 + perpX - 2*sc, hy + 24*sc, hx - fwdX*0.6 + perpX - 2*sc, hy + 40*sc);
+  ctx.stroke();
+
+  // Front leg (path side, mid-step)
+  ctx.strokeStyle = trouserCol; ctx.lineWidth = 7*sc;
+  ctx.beginPath();
+  ctx.moveTo(hx + fwdX*0.2 - perpX, hy + 8*sc);
+  ctx.quadraticCurveTo(hx + fwdX*0.7 - perpX, hy + 22*sc, hx + fwdX*0.9 - perpX, hy + 37*sc);
+  ctx.stroke();
+
+  // ── COAT / TORSO ──
+  const coatDark  = 'rgba(38,50,74,1)';
+  const coatMid   = 'rgba(48,62,88,1)';
+  const rimAmber  = 'rgba(200,148,60,0.72)';
+  const rimCool   = 'rgba(120,160,210,0.40)';
+
+  // Lower coat (hips forward, path-facing)
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(pathAngle * 0.18);
+  ctx.fillStyle = coatDark;
+  ctx.beginPath();
+  ctx.moveTo(-9*sc, 0); ctx.lineTo(10*sc, 0);
+  ctx.lineTo(9*sc, 16*sc); ctx.lineTo(-10*sc, 16*sc);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Upper coat (shoulders rotated toward sea)
+  const torsoAngle = pathAngle - 0.55;
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(torsoAngle);
+
+  ctx.fillStyle = coatMid;
+  ctx.beginPath();
+  ctx.moveTo(-11*sc, -14*sc); ctx.lineTo(10*sc, -14*sc);
+  ctx.lineTo(9*sc, 2*sc); ctx.lineTo(-10*sc, 2*sc);
+  ctx.closePath(); ctx.fill();
+
+  ctx.strokeStyle = rimAmber; ctx.lineWidth = 2.2*sc;
+  ctx.beginPath(); ctx.moveTo(-11*sc, -14*sc); ctx.lineTo(-10*sc, 2*sc); ctx.stroke();
+
+  ctx.strokeStyle = rimCool; ctx.lineWidth = 1.4*sc;
+  ctx.beginPath(); ctx.moveTo(10*sc, -14*sc); ctx.lineTo(9*sc, 2*sc); ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(62,78,108,1)'; ctx.lineWidth = 1*sc;
+  ctx.beginPath(); ctx.moveTo(-11*sc, -14*sc); ctx.lineTo(10*sc, -14*sc); ctx.stroke();
+
+  // Backpack
+  ctx.fillStyle = 'rgba(30,40,62,1)';
+  if(ctx.roundRect) ctx.roundRect(10*sc, -12*sc, 13*sc, 22*sc, 3*sc);
+  else ctx.rect(10*sc, -12*sc, 13*sc, 22*sc);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(50,65,92,1)'; ctx.lineWidth = 1*sc;
+  if(ctx.roundRect) { ctx.beginPath(); ctx.roundRect(10*sc, -12*sc, 13*sc, 22*sc, 3*sc); ctx.stroke(); }
+
+  // Left shoulder cap — small, tight, no extra protrusion
+  ctx.fillStyle = coatMid;
+  ctx.beginPath(); ctx.ellipse(-12*sc, -13*sc, 5*sc, 3*sc, -0.15, 0, Math.PI*2); ctx.fill();
+  // No amber arc on shoulder — amber goes on arm only (drawn later), prevents ghost limb
+
+  // Right shoulder cap — snug against backpack
+  ctx.fillStyle = coatDark;
+  ctx.beginPath(); ctx.ellipse(11*sc, -13*sc, 4.5*sc, 2.8*sc, 0.1, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+
+  // ── ARMS — exactly two arms, clean silhouette, no overlap ──
+  // Right arm (path-facing side): natural walking swing, slightly forward.
+  // Left arm (sea-facing side): hangs gently, slight backward swing.
+  // Both arms drawn BEFORE torso shoulder overlap to avoid ghost limbs.
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // ── RIGHT ARM (path-side, forward swing) ──
+  // Shoulder origin — right side of torso
+  const rShoulderX = hx + Math.cos(torsoAngle) * 9*sc;
+  const rShoulderY = hy - 11*sc + Math.sin(torsoAngle) * 3*sc;
+  // Elbow — drops down and slightly forward
+  const rElbowX = rShoulderX + Math.cos(pathAngle + 0.15) * 11*sc;
+  const rElbowY = rShoulderY + 12*sc;
+  // Hand — mid-thigh level, slightly forward
+  const rHandX  = rElbowX + Math.cos(pathAngle + 0.05) * 4*sc;
+  const rHandY  = rElbowY + 11*sc;
+
+  // Upper arm
+  ctx.strokeStyle = coatDark; ctx.lineWidth = 5.5*sc;
+  ctx.beginPath();
+  ctx.moveTo(rShoulderX, rShoulderY);
+  ctx.quadraticCurveTo(rShoulderX + Math.cos(pathAngle)*4*sc, rShoulderY + 7*sc, rElbowX, rElbowY);
+  ctx.stroke();
+  // Forearm
+  ctx.strokeStyle = coatDark; ctx.lineWidth = 4.5*sc;
+  ctx.beginPath();
+  ctx.moveTo(rElbowX, rElbowY);
+  ctx.quadraticCurveTo(rElbowX + 1*sc, rElbowY + 5*sc, rHandX, rHandY);
+  ctx.stroke();
+  // Hand
+  ctx.fillStyle = coatDark;
+  ctx.beginPath(); ctx.ellipse(rHandX, rHandY + 2*sc, 2.6*sc, 1.8*sc, 0.10, 0, Math.PI*2); ctx.fill();
+
+  // ── LEFT ARM (sea-facing, gentle backward hang) ──
+  // Shoulder origin — left side of torso
+  const lShoulderX = hx + Math.cos(torsoAngle + Math.PI) * 9*sc;
+  const lShoulderY = hy - 11*sc + Math.sin(torsoAngle + Math.PI) * 3*sc;
+  // Elbow — drops naturally, slight backward drift
+  const lElbowX = lShoulderX - Math.cos(pathAngle - 0.10) * 3*sc;
+  const lElbowY = lShoulderY + 12*sc;
+  // Hand — at mid-thigh, relaxed
+  const lHandX  = lElbowX - 3*sc;
+  const lHandY  = lElbowY + 11*sc;
+
+  // Upper arm
+  ctx.strokeStyle = coatMid; ctx.lineWidth = 5.5*sc;
+  ctx.beginPath();
+  ctx.moveTo(lShoulderX, lShoulderY);
+  ctx.quadraticCurveTo(lShoulderX - 2*sc, lShoulderY + 7*sc, lElbowX, lElbowY);
+  ctx.stroke();
+  // Forearm
+  ctx.strokeStyle = coatMid; ctx.lineWidth = 4.5*sc;
+  ctx.beginPath();
+  ctx.moveTo(lElbowX, lElbowY);
+  ctx.quadraticCurveTo(lElbowX - 1.5*sc, lElbowY + 5*sc, lHandX, lHandY);
+  ctx.stroke();
+  // Amber rim on sea-side arm — warm light from horizon
+  ctx.strokeStyle = rimAmber; ctx.lineWidth = 1.2*sc;
+  ctx.beginPath();
+  ctx.moveTo(lShoulderX - 1.5*sc, lShoulderY);
+  ctx.quadraticCurveTo(lElbowX - 1.5*sc, lElbowY, lHandX - 1.2*sc, lHandY);
+  ctx.stroke();
+  // Hand — skin tone, open and relaxed
+  ctx.fillStyle = 'rgba(155,118,78,0.88)';
+  ctx.beginPath(); ctx.ellipse(lHandX - 1*sc, lHandY + 2*sc, 2.6*sc, 1.8*sc, -0.08, 0, Math.PI*2); ctx.fill();
+
+  // ── NECK — angled from forward-facing torso toward sea-turned head ──
+  ctx.strokeStyle = 'rgba(52,38,28,1)'; ctx.lineWidth = 4*sc;
+  ctx.beginPath();
+  ctx.moveTo(hx + Math.cos(torsoAngle)*0*sc, hy - 12*sc);
+  ctx.quadraticCurveTo(hx - 7*sc, hy - 18*sc, hx - 10*sc, hy - 24*sc);
+  ctx.stroke();
+
+  // ── HEAD — subtly turned toward sea, not dramatically craned ──
+  // The turn is quiet: maybe 20–25° from the path direction rather than a full look-back.
+  // Body continues forward; head listens to the sea.
+  const headX = hx - 11*sc;
+  const headY = hy - 31*sc;
+
+  const faceGrad = ctx.createRadialGradient(headX - 3*sc, headY - 2*sc, 1*sc, headX, headY, 11*sc);
+  faceGrad.addColorStop(0,   'rgba(185,148,100,1)');
+  faceGrad.addColorStop(0.45,'rgba(155,118,78,1)');
+  faceGrad.addColorStop(0.80,'rgba(100,76,50,1)');
+  faceGrad.addColorStop(1,   'rgba(60,44,28,1)');
+  ctx.fillStyle = faceGrad;
+  // Head tilt is gentle — -0.28 rad instead of -0.45 (less dramatic rotation)
+  ctx.beginPath(); ctx.ellipse(headX, headY, 10*sc, 11*sc, -0.28, 0, Math.PI*2); ctx.fill();
+
+  ctx.strokeStyle = 'rgba(220,162,70,0.80)'; ctx.lineWidth = 1.8*sc;
+  ctx.beginPath(); ctx.ellipse(headX, headY, 10*sc, 11*sc, -0.28, Math.PI*0.6, Math.PI*1.5); ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(100,140,190,0.30)'; ctx.lineWidth = 1*sc;
+  ctx.beginPath(); ctx.ellipse(headX, headY, 10*sc, 11*sc, -0.28, -Math.PI*0.2, Math.PI*0.5); ctx.stroke();
+
+  // ── CAP — low, brim angled just slightly toward sea ──
+  ctx.fillStyle = 'rgba(32,42,60,1)';
+  ctx.beginPath(); ctx.ellipse(headX - 1*sc, headY - 7*sc, 9*sc, 5.5*sc, -0.28, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(24,32,50,1)';
+  ctx.beginPath(); ctx.ellipse(headX - 7*sc, headY - 2*sc, 11.5*sc, 3.5*sc, -0.24, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(200,148,60,0.45)'; ctx.lineWidth = 1*sc;
+  ctx.beginPath(); ctx.ellipse(headX - 7*sc, headY - 2*sc, 11.5*sc, 3.5*sc, -0.24, Math.PI*0.5, Math.PI*1.5); ctx.stroke();
+
+  ctx.restore();
+
+  // ── LEADING LINES OVERLAY ──
+  // The ocean is now visible on the LEFT — a real presence, not a memory.
+  // The path curves away to the right. Both pull at the traveler simultaneously.
+
+  // Sea leading line — the coast and the horizon draw the eye left
+  const seaLine = ctx.createLinearGradient(hx, hy, 0, H*0.60);
+  seaLine.addColorStop(0,   'rgba(40,80,140,0.00)');
+  seaLine.addColorStop(0.4, 'rgba(40,80,140,0.06)');
+  seaLine.addColorStop(1,   'rgba(60,110,180,0.10)');
+  ctx.fillStyle = seaLine;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy); ctx.lineTo(0, H*0.58); ctx.lineTo(0, H*0.74); ctx.lineTo(hx, hy+20*sc);
+  ctx.closePath(); ctx.fill();
+
+  // Path leading line — warmth of the lanterns pulling right and inland
+  const pathLine2 = ctx.createLinearGradient(hx, hy, W*0.88, H*0.68);
+  pathLine2.addColorStop(0,   'rgba(200,140,40,0.00)');
+  pathLine2.addColorStop(0.5, 'rgba(200,140,40,0.04)');
+  pathLine2.addColorStop(1,   'rgba(240,180,60,0.08)');
+  ctx.fillStyle = pathLine2;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy); ctx.lineTo(W*0.88, H*0.68); ctx.lineTo(W*0.88, H*0.74); ctx.lineTo(hx, hy+20*sc);
+  ctx.closePath(); ctx.fill();
+
+  // ── VIGNETTE — frames the scene, draws eye toward the traveler ──
+  // Slightly asymmetric: brighter above the ocean to keep it expansive
+  const vig2 = ctx.createRadialGradient(hx - 10*sc, hy - 20*sc, H*0.04, hx - 10*sc, hy - 10*sc, H*0.94);
+  vig2.addColorStop(0,    'transparent');
+  vig2.addColorStop(0.55, 'rgba(2,4,10,0.05)');
+  vig2.addColorStop(0.80, 'rgba(1,3,8,0.28)');
+  vig2.addColorStop(1,    'rgba(1,2,6,0.62)');
+  ctx.fillStyle=vig2; ctx.fillRect(0,0,W,H);
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE 3 — Quiet Regret: lakeside at dusk, figure sitting alone
+// ═══════════════════════════════════════════════════════════════
+function drawScene3(ctx, alpha, t) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Sky — deep dusk purples/mauves, very slightly warmer near horizon center
+  const skyG = ctx.createLinearGradient(0, 0, 0, H);
+  skyG.addColorStop(0,    'rgba(10,12,24,1)');
+  skyG.addColorStop(0.28, 'rgba(18,20,36,1)');
+  skyG.addColorStop(0.55, 'rgba(36,22,38,1)');
+  skyG.addColorStop(0.78, 'rgba(52,28,34,1)');
+  skyG.addColorStop(1,    'rgba(58,32,22,1)');
+  ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, H);
+
+  // ── Very faint, barely-there warm glow at horizon center ──
+  // Like the reference image but stripped back to almost nothing — a ghost of gold
+  const horizonGlow = ctx.createRadialGradient(W*0.5, H*0.59, 0, W*0.5, H*0.59, W*0.55);
+  horizonGlow.addColorStop(0,   'rgba(180,120,60,0.13)');   // extremely subtle warm centre
+  horizonGlow.addColorStop(0.18,'rgba(140,80,40,0.07)');
+  horizonGlow.addColorStop(0.45,'rgba(80,40,20,0.03)');
+  horizonGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = horizonGlow; ctx.fillRect(0, 0, W, H);
+
+  // Clouds — layered, illuminated from below by that faint warmth
+  // Dense upper layer (dark, heavy)
+  const cloudClusters = [
+    // [cx, cy, rx, ry, darknessR, darknessG, darknessB, alpha]
+    {cx:0.5,  cy:0.10, rx:0.44, ry:0.090, r:30,g:20,b:38, a:0.88},
+    {cx:0.18, cy:0.16, rx:0.28, ry:0.072, r:38,g:22,b:42, a:0.72},
+    {cx:0.80, cy:0.13, rx:0.30, ry:0.078, r:34,g:20,b:40, a:0.78},
+    {cx:0.38, cy:0.24, rx:0.36, ry:0.060, r:50,g:28,b:36, a:0.65},
+    {cx:0.72, cy:0.22, rx:0.32, ry:0.055, r:44,g:24,b:34, a:0.62},
+    {cx:0.12, cy:0.30, rx:0.22, ry:0.048, r:48,g:26,b:32, a:0.52},
+    {cx:0.62, cy:0.31, rx:0.26, ry:0.044, r:50,g:28,b:28, a:0.48},
+  ];
+  cloudClusters.forEach((c, i) => {
+    // Soft underbelly — very slight warm tint from horizon reflection
+    for (let b=0; b<5; b++) {
+      const bx = c.cx*W + b*W*0.04 - W*0.08;
+      const by = c.cy*H + b*H*0.012;
+      const bg = ctx.createRadialGradient(bx, by, 0, bx, by, c.rx*W*0.72);
+      // Bottom edge of clouds picks up faintest peach tinge
+      bg.addColorStop(0,   `rgba(${c.r},${c.g},${c.b},${c.a})`);
+      bg.addColorStop(0.6, `rgba(${c.r+8},${c.g+4},${c.b-4},${c.a*0.55})`);
+      bg.addColorStop(0.88,`rgba(${Math.min(c.r+14,90)},${Math.min(c.g+8,50)},${c.b-2},${c.a*0.18})`);
+      bg.addColorStop(1,   'transparent');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.ellipse(bx, by, c.rx*W*0.72, c.ry*H*1.1, 0, 0, Math.PI*2); ctx.fill();
+    }
+  });
+
+  // Thin cloud wisps low at horizon — catching the warmth more visibly
+  const wispY = H*0.555;
+  for (let w=0; w<4; w++) {
+    const wx = W*(0.15 + w*0.22);
+    const wg = ctx.createRadialGradient(wx, wispY, 0, wx, wispY, W*0.18);
+    wg.addColorStop(0,   'rgba(90,50,30,0.22)');
+    wg.addColorStop(0.5, 'rgba(60,32,20,0.09)');
+    wg.addColorStop(1,   'transparent');
+    ctx.fillStyle = wg;
+    ctx.beginPath(); ctx.ellipse(wx, wispY, W*0.18, H*0.028, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Lake horizon and body
+  const lakeY = H * 0.59;
+
+  // Horizon line — faint warm blush where sky meets water
+  const horizLine = ctx.createLinearGradient(0, lakeY-2, 0, lakeY+3);
+  horizLine.addColorStop(0, 'rgba(100,60,40,0.0)');
+  horizLine.addColorStop(0.5,'rgba(110,65,40,0.35)');
+  horizLine.addColorStop(1, 'rgba(80,40,28,0.0)');
+  ctx.fillStyle = horizLine; ctx.fillRect(0, lakeY-2, W, 5);
+
+  const lakeG = ctx.createLinearGradient(0, lakeY, 0, H);
+  lakeG.addColorStop(0,   'rgba(28,22,32,1)');   // horizon — picks up hint of warm sky
+  lakeG.addColorStop(0.12,'rgba(22,26,44,1)');
+  lakeG.addColorStop(1,   'rgba(10,14,26,1)');
+  ctx.fillStyle = lakeG; ctx.fillRect(0, lakeY, W, H - lakeY);
+
+  // ── Distant shore shimmer — very far away, across the lake ──
+  // Tiny lights/glow on the far bank: where he came from, impossibly distant now
+  const farBankY = lakeY + H*0.012;
+  // Distant warm glow — the shore lost, barely a smudge of light across the water
+  const farGlow = ctx.createRadialGradient(W*0.5, farBankY, 0, W*0.5, farBankY, W*0.38);
+  farGlow.addColorStop(0,   'rgba(200,155,80,0.12)');
+  farGlow.addColorStop(0.25,'rgba(160,110,55,0.06)');
+  farGlow.addColorStop(0.6, 'rgba(100,65,30,0.02)');
+  farGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = farGlow; ctx.fillRect(0, lakeY - H*0.02, W, H*0.12);
+
+  // Tiny scattered lights on far shore (like distant town/coast lights)
+  const farLights = [
+    {x:0.28,s:1.4},{x:0.34,s:1.0},{x:0.40,s:1.6},{x:0.46,s:0.9},
+    {x:0.52,s:1.3},{x:0.57,s:1.1},{x:0.62,s:0.8},{x:0.67,s:1.2},{x:0.72,s:0.9}
+  ];
+  farLights.forEach(l => {
+    const lx = l.x*W, ly = farBankY + Math.sin(l.x*12)*H*0.004;
+    const flicker = 0.7 + 0.3*Math.sin(t*1.2 + l.x*18);
+    // Glow halo
+    const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, l.s*W*0.012);
+    lg.addColorStop(0,   `rgba(220,170,90,${0.28*flicker})`);
+    lg.addColorStop(0.5, `rgba(180,120,55,${0.10*flicker})`);
+    lg.addColorStop(1,   'transparent');
+    ctx.fillStyle = lg;
+    ctx.beginPath(); ctx.arc(lx, ly, l.s*W*0.012, 0, Math.PI*2); ctx.fill();
+    // Light dot itself
+    ctx.fillStyle = `rgba(230,185,110,${0.55*flicker})`;
+    ctx.beginPath(); ctx.arc(lx, ly, l.s*0.9, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── Shimmer path on water — reflection of that distant lost shore ──
+  // Rippling column of faint gold from far bank toward viewer, like scene 1 but cold and distant
+  const shimmerCX = W*0.5;
+  for (let i=0; i<8; i++) {
+    const sy2 = lakeY + H*0.018 + i*(H*0.055);
+    const shimW = (W*0.025 + i*W*0.018) * (0.85 + 0.15*Math.sin(t*0.6 + i*0.8));
+    const shimA = (0.10 - i*0.010) * (0.7 + 0.3*Math.sin(t*0.4 + i));
+    ctx.fillStyle = `rgba(190,140,65,${shimA})`;
+    ctx.beginPath();
+    ctx.ellipse(shimmerCX + Math.sin(t*0.3+i)*W*0.008, sy2, shimW, H*0.006, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Distant mountain silhouettes across the lake (like reference image)
+  // Left mountains
+  ctx.fillStyle = 'rgba(16,18,28,1)';
+  ctx.beginPath();
+  ctx.moveTo(0, lakeY);
+  ctx.lineTo(W*0.08,  lakeY - H*0.065);
+  ctx.lineTo(W*0.18,  lakeY - H*0.095);
+  ctx.lineTo(W*0.28,  lakeY - H*0.072);
+  ctx.lineTo(W*0.36,  lakeY - H*0.052);
+  ctx.lineTo(W*0.44,  lakeY - H*0.038);
+  ctx.lineTo(W*0.5,   lakeY);
+  ctx.closePath(); ctx.fill();
+
+  // Right mountains (slightly taller, more prominent — that side has trees too)
+  ctx.fillStyle = 'rgba(14,16,24,1)';
+  ctx.beginPath();
+  ctx.moveTo(W*0.5,  lakeY);
+  ctx.lineTo(W*0.58, lakeY - H*0.042);
+  ctx.lineTo(W*0.67, lakeY - H*0.078);
+  ctx.lineTo(W*0.76, lakeY - H*0.058);
+  ctx.lineTo(W*0.85, lakeY - H*0.088);
+  ctx.lineTo(W*0.94, lakeY - H*0.068);
+  ctx.lineTo(W,      lakeY - H*0.048);
+  ctx.lineTo(W, lakeY); ctx.closePath(); ctx.fill();
+
+  // Sky reflections in lake — with faint warm tinge near center
+  ctx.fillStyle = 'rgba(55,28,30,0.22)';
+  ctx.beginPath(); ctx.ellipse(W*0.72, H*0.72, W*0.14, H*0.09, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(38,22,38,0.15)';
+  ctx.beginPath(); ctx.ellipse(W*0.5, H*0.79, W*0.22, H*0.055, 0, 0, Math.PI*2); ctx.fill();
+
+  // Calm water ripples
+  ctx.lineWidth = 0.8;
+  const ripplePaths = [
+    [[0.0625,0.631],[0.3125,0.624],[0.625,0.633]],
+    [[0.375,0.655],[0.525,0.648],[0.675,0.657]],
+    [[0.75,0.638],[0.875,0.631],[0.975,0.643]],
+    [[0,0.69],[0.125,0.683],[0.25,0.693]],
+    [[0.5,0.679],[0.65,0.672],[0.8,0.683]],
+    [[0,0.738],[0.25,0.731],[0.475,0.743]],
+    [[0.625,0.726],[0.8,0.719],[1.0,0.731]],
+    [[0.125,0.786],[0.375,0.779],[0.6,0.790]],
+    [[0.725,0.774],[0.875,0.767],[1.0,0.779]],
+    [[0,0.845],[0.3125,0.838],[0.625,0.848],[0.8125,0.852],[1.0,0.843]],
+    [[0,0.917],[0.375,0.910],[0.75,0.919],[0.875,0.924],[1.0,0.914]],
+  ];
+  ripplePaths.forEach(pts => {
+    // Near shimmer path, ripples pick up slight warmth
+    const midX = pts[Math.floor(pts.length/2)][0];
+    const warmth = Math.max(0, 0.5 - Math.abs(midX - 0.5)*2.5);
+    ctx.strokeStyle = `rgba(${42+warmth*20|0},${52+warmth*8|0},${80-warmth*10|0},0.35)`;
+    ctx.beginPath();
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p[0]*W, p[1]*H) : ctx.lineTo(p[0]*W, p[1]*H));
+    ctx.stroke();
+  });
+
+  // Distant tiny trees below left mountains — far side of lake
+  ctx.fillStyle = 'rgba(12,14,22,0.92)';
+  [0.02,0.055,0.09,0.125,0.16,0.195,0.23,0.265,0.30,0.335,0.37,0.405].forEach((tx, i) => {
+    const treeH = H * (0.020 + Math.sin(i*1.3)*0.006);
+    const treeW = W * 0.010;
+    ctx.beginPath();
+    ctx.moveTo(tx*W - treeW*0.5, lakeY);
+    ctx.lineTo(tx*W, lakeY - treeH);
+    ctx.lineTo(tx*W + treeW*0.5, lakeY);
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Distant tiny trees below right mountains — far side of lake
+  [0.52,0.555,0.59,0.625,0.66,0.695,0.73,0.765,0.80,0.835,0.87,0.905,0.94,0.97].forEach((tx, i) => {
+    const treeH = H * (0.018 + Math.sin(i*1.7)*0.007);
+    const treeW = W * 0.009;
+    ctx.beginPath();
+    ctx.moveTo(tx*W - treeW*0.5, lakeY);
+    ctx.lineTo(tx*W, lakeY - treeH);
+    ctx.lineTo(tx*W + treeW*0.5, lakeY);
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Grassy bank — slimmed so lake scenery breathes
+  ctx.fillStyle = 'rgba(10,13,20,0.92)';
+  ctx.beginPath();
+  ctx.moveTo(0, lakeY + H*0.10);
+  ctx.quadraticCurveTo(W*0.15, lakeY + H*0.055, W*0.30, lakeY + H*0.032);
+  ctx.quadraticCurveTo(W*0.48, lakeY + H*0.022, W*0.5,  lakeY + H*0.026);
+  ctx.quadraticCurveTo(W*0.65, lakeY + H*0.030, W*0.82, lakeY + H*0.040);
+  ctx.quadraticCurveTo(W*0.92, lakeY + H*0.062, W,      lakeY + H*0.095);
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+
+  // Sparse grass tufts on bank edge
+  ctx.strokeStyle = 'rgba(28,44,36,0.55)'; ctx.lineWidth = 1.1;
+  [0.30,0.34,0.38,0.42,0.46,0.50,0.54,0.58,0.62,0.66].forEach((tx, i) => {
+    const ty = lakeY + H*(0.028 - i*0.0003);
+    ctx.beginPath(); ctx.moveTo(tx*W, ty); ctx.quadraticCurveTo(tx*W+3, ty-H*0.012, tx*W+6, ty); ctx.stroke();
+  });
+
+  // Pebbles / rocks on the shore edge
+  ctx.fillStyle = 'rgba(22,32,48,0.7)';
+  [0.33,0.39,0.44,0.50,0.56,0.61].forEach((px, i) => {
+    const py = lakeY + H*0.022 + Math.sin(i*1.8)*H*0.003;
+    const pr = (2.2 + Math.sin(i*2.3)*1.0) * (H/720);
+    ctx.beginPath(); ctx.ellipse(px*W, py, pr*1.8, pr*0.9, Math.sin(i)*0.4, 0, Math.PI*2); ctx.fill();
+  });
+
+  // FIGURE — sitting, facing the lake/sea (back to viewer), reference SVG ported
+  const fx = W*0.485, fy = lakeY + H*0.036;
+  const sc = H/420;   // matches SVG viewBox scale
+
+  // Shadow on ground
+  ctx.fillStyle = 'rgba(6,10,16,0.50)';
+  ctx.beginPath(); ctx.ellipse(fx + 10*sc, fy + 42*sc, 30*sc, 6*sc, 0, 0, Math.PI*2); ctx.fill();
+
+  // Legs folded cross-legged — wide arc, sitting on ground
+  ctx.fillStyle = '#141e2c';
+  ctx.strokeStyle = '#141e2c';
+  ctx.lineWidth = 2*sc;
+  ctx.beginPath();
+  ctx.moveTo(fx - 18*sc, fy + 32*sc);
+  ctx.quadraticCurveTo(fx - 5*sc, fy + 40*sc, fx + 10*sc, fy + 38*sc);
+  ctx.quadraticCurveTo(fx + 25*sc, fy + 36*sc, fx + 28*sc, fy + 32*sc);
+  ctx.fill(); ctx.stroke();
+
+  // Body — slightly leaning forward (rotate -5 deg around top-left)
+  ctx.save();
+  ctx.translate(fx - 8*sc, fy + 8*sc);
+  ctx.rotate(-0.087); // -5 deg
+  ctx.fillStyle = '#1a2434';
+  ctx.beginPath();
+  // roundRect fallback
+  const bw = 18*sc, bh = 28*sc, br = 5*sc;
+  ctx.moveTo(br, 0); ctx.lineTo(bw-br, 0);
+  ctx.quadraticCurveTo(bw, 0, bw, br);
+  ctx.lineTo(bw, bh-br); ctx.quadraticCurveTo(bw, bh, bw-br, bh);
+  ctx.lineTo(br, bh); ctx.quadraticCurveTo(0, bh, 0, bh-br);
+  ctx.lineTo(0, br); ctx.quadraticCurveTo(0, 0, br, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Head — bowed slightly toward the water
+  const headX = fx + 2*sc, headY = fy - 2*sc;
+  ctx.fillStyle = '#1e2c3e';
+  ctx.beginPath(); ctx.arc(headX, headY, 11*sc, 0, Math.PI*2); ctx.fill();
+
+  // Hair — seen from behind/top
+  ctx.fillStyle = '#0e1620';
+  ctx.beginPath(); ctx.ellipse(headX, headY - 6*sc, 11*sc, 6*sc, 0, 0, Math.PI*2); ctx.fill();
+
+  // Left arm resting down on knee
+  ctx.strokeStyle = '#1a2434'; ctx.lineWidth = 4.5*sc; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(fx - 8*sc, fy + 24*sc);
+  ctx.quadraticCurveTo(fx - 18*sc, fy + 34*sc, fx - 20*sc, fy + 40*sc);
+  ctx.stroke();
+
+  // Right arm resting down on knee
+  ctx.beginPath();
+  ctx.moveTo(fx + 10*sc, fy + 26*sc);
+  ctx.quadraticCurveTo(fx + 22*sc, fy + 34*sc, fx + 24*sc, fy + 40*sc);
+  ctx.stroke();
+
+  // ── TEARS: falling slanted right from chin — visible beside hero's body ──
+  // Origin: right side of chin so drops emerge in the open space to hero's right
+  const tearFx = fx + 2*sc, tearFy = fy - 2*sc;
+  const chinX3 = tearFx + 9*sc,  chinY3 = tearFy + 5*sc;  // raised toward face
+  // Land slanted right and forward — clear of the body silhouette
+  const landX3 = chinX3 + 18*sc, landY3 = fy + 30*sc;
+
+  const tears3 = [
+    { ox: chinX3,         oy: chinY3,         lx: landX3,        ly: landY3, spd: 0.22, ph: 0.00 },
+    { ox: chinX3 - 1*sc,  oy: chinY3 + 1*sc,  lx: landX3 - 4*sc, ly: landY3, spd: 0.18, ph: 0.40 },
+    { ox: chinX3 + 2*sc,  oy: chinY3 - 1*sc,  lx: landX3 + 3*sc, ly: landY3, spd: 0.20, ph: 0.70 },
+  ];
+
+  tears3.forEach(tr => {
+    const prog = ((t * tr.spd + tr.ph) % 1.0);
+    if (prog < 0.65) {
+      const dp = prog / 0.65;
+      // Control point arcs right and slightly forward
+      const cpx = tr.ox + (tr.lx - tr.ox)*0.5 + 8*sc;
+      const cpy = tr.oy + (tr.ly - tr.oy)*0.4 + 2*sc;
+      const dropX = (1-dp)*(1-dp)*tr.ox + 2*(1-dp)*dp*cpx + dp*dp*tr.lx;
+      const dropY = (1-dp)*(1-dp)*tr.oy + 2*(1-dp)*dp*cpy + dp*dp*tr.ly;
+
+      // Very faint streak behind drop
+      if (dp > 0.10) {
+        const dp0 = Math.max(0, dp - 0.18);
+        const t0x = (1-dp0)*(1-dp0)*tr.ox + 2*(1-dp0)*dp0*cpx + dp0*dp0*tr.lx;
+        const t0y = (1-dp0)*(1-dp0)*tr.oy + 2*(1-dp0)*dp0*cpy + dp0*dp0*tr.ly;
+        ctx.save();
+        ctx.strokeStyle = `rgba(80,110,160,${0.07 * Math.sin(dp*Math.PI)})`;
+        ctx.lineWidth = 0.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(t0x, t0y); ctx.lineTo(dropX, dropY); ctx.stroke();
+        ctx.restore();
+      }
+      // Tiny bead — barely visible
+      const bA = 0.30 * Math.sin(dp * Math.PI);
+      ctx.save();
+      ctx.fillStyle = `rgba(100,138,195,${bA})`;
+      ctx.beginPath(); ctx.arc(dropX, dropY, 0.9*sc, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+    } else if (prog < 0.82) {
+      // Tiny ripple on landing
+      const sp = (prog - 0.65) / 0.17;
+      ctx.save();
+      ctx.strokeStyle = `rgba(80,110,165,${0.15*(1-sp)})`;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.ellipse(tr.lx, tr.ly, sp*3.5*sc, sp*0.9*sc, 0, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE 4 — Questions: rain, heavy storm clouds, traveler looking up
+// ═══════════════════════════════════════════════════════════════
+function drawScene4(ctx, alpha, t) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Very dark storm sky
+  const skyG = ctx.createLinearGradient(0, 0, 0, H);
+  skyG.addColorStop(0,   'rgba(4,5,12,1)');
+  skyG.addColorStop(0.35,'rgba(8,11,20,1)');
+  skyG.addColorStop(0.7, 'rgba(12,16,28,1)');
+  skyG.addColorStop(1,   'rgba(16,20,34,1)');
+  ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, H);
+
+  // Lightning flash state
+  if (!drawScene4._ltState) drawScene4._ltState = {next:0, active:false, cx:0.5, cy:0.15, dur:0, start:0};
+  const ls = drawScene4._ltState;
+  if (t > ls.next) {
+    ls.active = true; ls.start = t;
+    ls.cx = 0.25 + Math.random()*0.5; ls.cy = 0.05 + Math.random()*0.18;
+    ls.dur = 0.18 + Math.random()*0.22;
+    ls.next = t + 2.5 + Math.random()*4.0;
+  }
+  let ltBright = 0;
+  if (ls.active) {
+    const age = t - ls.start;
+    ltBright = age < ls.dur ? Math.exp(-age/ls.dur*4) * (0.5 + 0.5*Math.sin(age*80)) : 0;
+    if (age > ls.dur) ls.active = false;
+  }
+  if (ltBright > 0.01) {
+    const lg = ctx.createRadialGradient(ls.cx*W, ls.cy*H, 0, ls.cx*W, ls.cy*H, W*0.55);
+    lg.addColorStop(0,   `rgba(200,215,255,${0.30*ltBright})`);
+    lg.addColorStop(0.3, `rgba(160,180,230,${0.14*ltBright})`);
+    lg.addColorStop(0.7, `rgba(100,120,180,${0.05*ltBright})`);
+    lg.addColorStop(1,   'transparent');
+    ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = `rgba(180,200,240,${0.07*ltBright})`;
+    ctx.fillRect(0, 0, W, H*0.42);
+  }
+
+  // Volumetric storm clouds
+  function drawStormCloud(cx, cy, cw, ch, baseAlpha) {
+    const bubbles = 9;
+    for (let i = 0; i < bubbles; i++) {
+      const bx = cx + cw * (0.04 + i / bubbles * 0.92);
+      const by = cy + ch * 0.45 + ch * 0.38 * Math.sin(i * 0.85 + 1.1);
+      const br = ch * (0.45 + 0.28 * Math.sin(i * 1.15));
+      const cg = ctx.createRadialGradient(bx, by - br*0.28, br*0.05, bx, by, br);
+      cg.addColorStop(0,    `rgba(10,13,22,${baseAlpha})`);
+      cg.addColorStop(0.55, `rgba(14,18,30,${baseAlpha * 0.88})`);
+      cg.addColorStop(0.82, `rgba(22,28,44,${baseAlpha * 0.55})`);
+      cg.addColorStop(1,    'transparent');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+      if (ltBright > 0.05) {
+        const ig = ctx.createRadialGradient(bx, by-br*0.3, 0, bx, by, br*0.7);
+        ig.addColorStop(0, `rgba(160,180,230,${0.18*ltBright*baseAlpha})`);
+        ig.addColorStop(1, 'transparent');
+        ctx.fillStyle = ig;
+        ctx.beginPath(); ctx.arc(bx, by, br*0.7, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  drawStormCloud(W*(-0.05 + Math.sin(t*0.018)*0.012), H*0.00, W*0.52, H*0.28, 0.97);
+  drawStormCloud(W*(0.30  + Math.sin(t*0.014)*0.010), H*(-0.02), W*0.48, H*0.26, 0.95);
+  drawStormCloud(W*(0.60  + Math.sin(t*0.020)*0.008), H*0.02, W*0.46, H*0.24, 0.93);
+  drawStormCloud(W*(-0.02 + Math.sin(t*0.016)*0.010), H*0.18, W*0.42, H*0.22, 0.90);
+  drawStormCloud(W*(0.35  + Math.sin(t*0.022)*0.009), H*0.20, W*0.50, H*0.20, 0.88);
+  drawStormCloud(W*(0.70  + Math.sin(t*0.015)*0.011), H*0.16, W*0.38, H*0.19, 0.86);
+  drawStormCloud(W*(0.10  + Math.sin(t*0.019)*0.008), H*0.28, W*0.55, H*0.16, 0.82);
+  drawStormCloud(W*(0.55  + Math.sin(t*0.017)*0.009), H*0.30, W*0.52, H*0.15, 0.80);
+
+  // Rain streaks
+  if (!drawScene4._rainStreaks) {
+    drawScene4._rainStreaks = Array.from({length: 80}, () => ({
+      x: Math.random(), baseY: 0.28 + Math.random()*0.14, len: 0.04 + Math.random()*0.06,
+      speed: 0.9 + Math.random()*0.5, op: 0.12 + Math.random()*0.22, phase: Math.random()*10
+    }));
+  }
+  ctx.lineWidth = 0.8;
+  drawScene4._rainStreaks.forEach(s => {
+    const x = s.x * W;
+    const y = ((s.baseY + (t * s.speed * 0.018 + s.phase) % 0.42)) * H;
+    if (y < H * 0.60) {
+      ctx.strokeStyle = `rgba(140,160,200,${s.op * alpha})`;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 1.5, y + s.len * H); ctx.stroke();
+    }
+  });
+
+  // Lake
+  const lakeY = H * 0.60;
+  ctx.fillStyle = 'rgba(26,40,56,0.6)';
+  ctx.fillRect(0, lakeY - 1.5, W, 3);
+  const lakeG = ctx.createLinearGradient(0, lakeY, 0, H);
+  lakeG.addColorStop(0, 'rgba(14,22,36,1)');
+  lakeG.addColorStop(1, 'rgba(8,14,24,1)');
+  ctx.fillStyle = lakeG; ctx.fillRect(0, lakeY, W, H - lakeY);
+
+  // Rain ripples on lake
+  ctx.strokeStyle = 'rgba(30,46,66,0.6)'; ctx.lineWidth = 0.7;
+  const rainRipples = [
+    [0.15,0.655,0.010,0.007],[0.25,0.69,0.0075,0.006],[0.375,0.638,0.00875,0.0071],
+    [0.475,0.671,0.00625,0.0048],[0.5625,0.702,0.01125,0.0083],[0.7,0.648,0.0075,0.006],
+    [0.8,0.679,0.010,0.0071],[0.9,0.719,0.00875,0.0071],[0.2,0.738,0.00625,0.0048],
+    [0.35,0.757,0.00875,0.0071],[0.525,0.771,0.0075,0.006],[0.725,0.743,0.010,0.0071],
+    [0.875,0.781,0.0075,0.006],
+  ];
+  rainRipples.forEach(r => {
+    const phase = (t*1.8 + r[0]*5) % 2;
+    if (phase < 1.5) {
+      ctx.strokeStyle = `rgba(30,46,66,${0.6*(1-phase/1.5)})`;
+      ctx.beginPath(); ctx.ellipse(r[0]*W, r[1]*H, r[2]*W*phase*2, r[3]*H*phase*2, 0, 0, Math.PI*2); ctx.stroke();
+    }
+  });
+
+
+  // ── CHARM: Aurora-like horizon glow band — cold violet-blue above the lake ──
+  // Storm clouds part just enough at the horizon to reveal a faint ethereal band
+  const auroraY = lakeY - H*0.012;
+  const auroraG = ctx.createLinearGradient(0, auroraY - H*0.06, 0, auroraY + H*0.02);
+  auroraG.addColorStop(0,   'transparent');
+  auroraG.addColorStop(0.35,`rgba(60,80,160,${0.10 + 0.05*Math.sin(t*0.4)})`);
+  auroraG.addColorStop(0.65,`rgba(80,55,140,${0.07 + 0.04*Math.sin(t*0.5+1)})`);
+  auroraG.addColorStop(1,   'transparent');
+  ctx.fillStyle = auroraG; ctx.fillRect(0, auroraY - H*0.06, W, H*0.08);
+
+  // ── CHARM: Floating rain-mist sparkles — tiny lit droplets suspended in air ──
+  if (!drawScene4._sparkles) {
+    drawScene4._sparkles = Array.from({length: 55}, () => ({
+      x: Math.random(),
+      y: 0.30 + Math.random() * 0.34,
+      r: 0.4 + Math.random() * 1.1,
+      speed: 0.006 + Math.random() * 0.010,
+      drift: (Math.random() - 0.5) * 0.003,
+      phase: Math.random() * Math.PI * 2,
+      col: Math.random()  // 0 = cold blue, 1 = pale silver
+    }));
+  }
+  drawScene4._sparkles.forEach(s => {
+    s.y += s.speed;
+    s.x += s.drift;
+    if (s.y > 0.64) { s.y = 0.30; s.x = Math.random(); }
+    const twinkle = 0.4 + 0.6 * Math.sin(t * 3.5 + s.phase);
+    const ltBoost = ltBright > 0.05 ? ltBright * 0.6 : 0;
+    const a = (0.18 + 0.22 * twinkle + ltBoost) * alpha;
+    ctx.beginPath();
+    ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = s.col > 0.5
+      ? `rgba(180,200,240,${a})`
+      : `rgba(140,160,220,${a})`;
+    ctx.fill();
+  });
+
+  // ── CHARM: Glowing rain streaks — a few catch the ambient light ──
+  if (!drawScene4._glowRain) {
+    drawScene4._glowRain = Array.from({length: 18}, () => ({
+      x: Math.random(),
+      baseY: 0.28 + Math.random() * 0.12,
+      len: 0.05 + Math.random() * 0.07,
+      speed: 0.9 + Math.random() * 0.4,
+      phase: Math.random() * 10
+    }));
+  }
+  drawScene4._glowRain.forEach(s => {
+    const x = s.x * W;
+    const y = ((s.baseY + (t * s.speed * 0.018 + s.phase) % 0.40)) * H;
+    if (y < H * 0.60) {
+      const glow = 0.28 + 0.20 * Math.sin(t * 2.0 + s.phase);
+      const ltB = ltBright > 0.05 ? ltBright * 0.5 : 0;
+      ctx.save();
+      ctx.strokeStyle = `rgba(160,185,240,${(glow + ltB) * alpha})`;
+      ctx.lineWidth = 0.9;
+      ctx.shadowColor = 'rgba(120,150,220,0.6)';
+      ctx.shadowBlur = 3;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 1.5, y + s.len * H); ctx.stroke();
+      ctx.restore();
+    }
+  });
+
+  // ── CHARM: Wet-coat shimmer on figure — rain soaking the traveler ──
+  {
+    const fx4s = W*0.4875, fy4s = lakeY + H*0.034;
+    const sc4s = H/720;
+    const shimPulse = 0.5 + 0.5*Math.sin(t*1.6);
+    const ltS = ltBright > 0.05 ? ltBright * 0.4 : 0;
+    // Left shoulder rim — cold light
+    ctx.save();
+    ctx.globalAlpha = (0.22 + 0.12*shimPulse + ltS) * alpha;
+    ctx.strokeStyle = 'rgba(120,155,220,1)';
+    ctx.lineWidth = 1.2*sc4s; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(fx4s - 2*sc4s, fy4s + 14*sc4s);
+    ctx.quadraticCurveTo(fx4s - 4*sc4s, fy4s + 28*sc4s, fx4s - 2*sc4s, fy4s + 44*sc4s);
+    ctx.stroke();
+    // Right shoulder rim
+    ctx.beginPath();
+    ctx.moveTo(fx4s + 20*sc4s, fy4s + 14*sc4s);
+    ctx.quadraticCurveTo(fx4s + 22*sc4s, fy4s + 28*sc4s, fx4s + 20*sc4s, fy4s + 44*sc4s);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // When lightning flashes, the lake briefly reflects a pale blue-silver glow
+  if (ltBright > 0.02) {
+    const lkRefl = ctx.createRadialGradient(W*ls.cx, lakeY + H*0.05, 0, W*ls.cx, lakeY + H*0.05, W*0.45);
+    lkRefl.addColorStop(0,   `rgba(160,180,230,${0.22*ltBright})`);
+    lkRefl.addColorStop(0.4, `rgba(100,130,190,${0.10*ltBright})`);
+    lkRefl.addColorStop(1,   'transparent');
+    ctx.fillStyle = lkRefl; ctx.fillRect(0, lakeY, W, H-lakeY);
+  }
+
+  // ── CHARM: Faint bioluminescent-style glow where rain hits water ──
+  // Rain impact points create tiny rings of cold light — eerie, beautiful
+  const rainGlowPts = [
+    {x:0.22,y:0.67},{x:0.38,y:0.64},{x:0.51,y:0.69},{x:0.63,y:0.65},{x:0.77,y:0.71},
+    {x:0.15,y:0.75},{x:0.44,y:0.73},{x:0.68,y:0.72},{x:0.88,y:0.68},
+  ];
+  rainGlowPts.forEach((p, i) => {
+    const pulse = 0.4 + 0.6*Math.sin(t*2.2 + i*1.4);
+    const rg = ctx.createRadialGradient(p.x*W, p.y*H, 0, p.x*W, p.y*H, W*0.055);
+    rg.addColorStop(0,   `rgba(120,155,210,${0.14*pulse})`);
+    rg.addColorStop(0.5, `rgba(80,110,170,${0.06*pulse})`);
+    rg.addColorStop(1,   'transparent');
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.arc(p.x*W, p.y*H, W*0.055, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── CHARM: Wet ground puddle glow at figure's feet — rain pooling on dark earth ──
+  const fx4 = W*0.4875, fy4 = lakeY + H*0.034;
+  const sc4 = H/720;
+  const pudA = 0.18 + 0.08*Math.sin(t*1.1);
+  const pudG = ctx.createRadialGradient(fx4 + 9*sc4, fy4 + 80*sc4, 0, fx4 + 9*sc4, fy4 + 80*sc4, W*0.085);
+  pudG.addColorStop(0,   `rgba(80,110,180,${pudA})`);
+  pudG.addColorStop(0.4, `rgba(50,80,140,${pudA*0.5})`);
+  pudG.addColorStop(1,   'transparent');
+  ctx.fillStyle = pudG;
+  ctx.beginPath(); ctx.ellipse(fx4 + 9*sc4, fy4 + 80*sc4, W*0.085, W*0.018, 0, 0, Math.PI*2); ctx.fill();
+
+  // Puddle rain ripples — tiny expanding rings in the puddle
+  for (let pr = 0; pr < 3; pr++) {
+    const prPhase = (t*0.9 + pr*0.7) % 2.5;
+    if (prPhase < 2.0) {
+      const prR = prPhase * W*0.022;
+      ctx.save();
+      ctx.strokeStyle = `rgba(100,140,210,${0.28*(1 - prPhase/2.0)})`;
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.ellipse(fx4 + 9*sc4 + (pr-1)*W*0.012, fy4 + 80*sc4, prR, prR*0.22, 0, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // ── CHARM: Faint cool halo around figure — rain mist catching last light ──
+  const haloG = ctx.createRadialGradient(fx4 + 9*sc4, fy4 + 35*sc4, 5*sc4, fx4 + 9*sc4, fy4 + 35*sc4, 55*sc4);
+  haloG.addColorStop(0,    'transparent');
+  haloG.addColorStop(0.55, `rgba(80,110,170,${0.06 + 0.04*Math.sin(t*0.7)})`);
+  haloG.addColorStop(1,    'transparent');
+  ctx.fillStyle = haloG;
+  ctx.beginPath(); ctx.ellipse(fx4 + 9*sc4, fy4 + 35*sc4, 55*sc4, 65*sc4, 0, 0, Math.PI*2); ctx.fill();
+
+  // ── CHARM: Tiny streaks of reflected lightning on wet bank ground ──
+  if (ltBright > 0.04) {
+    const gndRefl = ctx.createLinearGradient(0, lakeY + H*0.026, 0, lakeY + H*0.10);
+    gndRefl.addColorStop(0,   `rgba(140,160,220,${0.18*ltBright})`);
+    gndRefl.addColorStop(0.5, `rgba(80,100,160,${0.08*ltBright})`);
+    gndRefl.addColorStop(1,   'transparent');
+    ctx.fillStyle = gndRefl;
+    ctx.fillRect(0, lakeY + H*0.024, W, H*0.08);
+  }
+
+  // Distant mountain silhouettes across the lake — same as scene 3
+  // Left mountains
+  ctx.fillStyle = 'rgba(12,15,22,1)';
+  ctx.beginPath();
+  ctx.moveTo(0, lakeY);
+  ctx.lineTo(W*0.08,  lakeY - H*0.060);
+  ctx.lineTo(W*0.18,  lakeY - H*0.088);
+  ctx.lineTo(W*0.28,  lakeY - H*0.066);
+  ctx.lineTo(W*0.36,  lakeY - H*0.048);
+  ctx.lineTo(W*0.44,  lakeY - H*0.034);
+  ctx.lineTo(W*0.5,   lakeY);
+  ctx.closePath(); ctx.fill();
+
+  // Right mountains
+  ctx.fillStyle = 'rgba(10,13,20,1)';
+  ctx.beginPath();
+  ctx.moveTo(W*0.5,  lakeY);
+  ctx.lineTo(W*0.58, lakeY - H*0.038);
+  ctx.lineTo(W*0.67, lakeY - H*0.072);
+  ctx.lineTo(W*0.76, lakeY - H*0.054);
+  ctx.lineTo(W*0.85, lakeY - H*0.082);
+  ctx.lineTo(W*0.94, lakeY - H*0.062);
+  ctx.lineTo(W,      lakeY - H*0.044);
+  ctx.lineTo(W, lakeY); ctx.closePath(); ctx.fill();
+
+  // Distant tiny trees below mountains — far side of lake
+  ctx.fillStyle = 'rgba(8,12,18,0.95)';
+  [0.02,0.055,0.09,0.125,0.16,0.195,0.23,0.265,0.30,0.335,0.37,0.405].forEach((tx, i) => {
+    const treeH = H * (0.018 + Math.sin(i*1.3)*0.005);
+    const treeW = W * 0.009;
+    ctx.beginPath();
+    ctx.moveTo(tx*W - treeW*0.5, lakeY);
+    ctx.lineTo(tx*W, lakeY - treeH);
+    ctx.lineTo(tx*W + treeW*0.5, lakeY);
+    ctx.closePath(); ctx.fill();
+  });
+  [0.52,0.555,0.59,0.625,0.66,0.695,0.73,0.765,0.80,0.835,0.87,0.905,0.94,0.97].forEach((tx, i) => {
+    const treeH = H * (0.016 + Math.sin(i*1.7)*0.006);
+    const treeW = W * 0.009;
+    ctx.beginPath();
+    ctx.moveTo(tx*W - treeW*0.5, lakeY);
+    ctx.lineTo(tx*W, lakeY - treeH);
+    ctx.lineTo(tx*W + treeW*0.5, lakeY);
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Bank/ground — slimmed so stormy sky dominates
+  ctx.fillStyle = 'rgba(8,12,18,0.95)';
+  ctx.beginPath();
+  ctx.moveTo(0, lakeY + H*0.10);
+  ctx.quadraticCurveTo(W*0.15, lakeY + H*0.055, W*0.30, lakeY + H*0.030);
+  ctx.quadraticCurveTo(W*0.48, lakeY + H*0.020, W*0.5,  lakeY + H*0.024);
+  ctx.quadraticCurveTo(W*0.65, lakeY + H*0.028, W*0.82, lakeY + H*0.038);
+  ctx.quadraticCurveTo(W*0.92, lakeY + H*0.060, W,      lakeY + H*0.092);
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+
+  // TRAVELER STANDING — head tilted back looking up, arms out/palms up
+  const fx = W*0.4875, fy = lakeY + H*0.034;
+  const sc = H/720;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(4,6,8,0.5)';
+  ctx.beginPath(); ctx.ellipse(fx + 10*sc, fy + 72*sc, 22*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+
+  // Legs
+  ctx.fillStyle = 'rgba(16,24,40,1)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(fx + 2*sc, fy + 52*sc, 8*sc, 24*sc, 3*sc) : ctx.rect(fx + 2*sc, fy + 52*sc, 8*sc, 24*sc);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(fx + 12*sc, fy + 52*sc, 8*sc, 24*sc, 3*sc) : ctx.rect(fx + 12*sc, fy + 52*sc, 8*sc, 24*sc);
+  ctx.fill();
+
+  // Body coat
+  ctx.fillStyle = 'rgba(24,32,48,1)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(fx - 2*sc, fy + 14*sc, 22*sc, 42*sc, 5*sc) : ctx.rect(fx - 2*sc, fy + 14*sc, 22*sc, 42*sc);
+  ctx.fill();
+
+  // Head tilted back (looking at sky)
+  ctx.fillStyle = 'rgba(30,44,62,1)';
+  ctx.beginPath(); ctx.ellipse(fx + 9*sc, fy + 6*sc, 11*sc, 12*sc, 0.26, 0, Math.PI*2); ctx.fill();
+  // Face (chin up)
+  ctx.fillStyle = 'rgba(42,58,78,1)';
+  ctx.beginPath(); ctx.ellipse(fx + 11*sc, fy + 2*sc, 8*sc, 6*sc, 0.35, 0, Math.PI*2); ctx.fill();
+
+  // Arms spread out, palms up (questioning gesture)
+  ctx.strokeStyle = 'rgba(24,32,48,1)'; ctx.lineWidth = 5*sc; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(fx - 2*sc, fy + 28*sc); ctx.quadraticCurveTo(fx - 20*sc, fy + 32*sc, fx - 28*sc, fy + 38*sc); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(fx + 20*sc, fy + 28*sc); ctx.quadraticCurveTo(fx + 36*sc, fy + 30*sc, fx + 44*sc, fy + 34*sc); ctx.stroke();
+
+  // Palms open upward
+  ctx.fillStyle = 'rgba(42,58,78,1)';
+  ctx.save(); ctx.translate(fx - 28*sc, fy + 40*sc); ctx.rotate(-0.26);
+  ctx.beginPath(); ctx.ellipse(0, 0, 5*sc, 3*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save(); ctx.translate(fx + 44*sc, fy + 36*sc); ctx.rotate(0.26);
+  ctx.beginPath(); ctx.ellipse(0, 0, 5*sc, 3*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE 5 — Forward: clearing sky, same lake, few birds, traveler watching
+// ═══════════════════════════════════════════════════════════════
+function drawScene5(ctx, alpha, t) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // ── Sky: deep charming night — indigo to deep teal, post-storm clarity ──
+  const skyG = ctx.createLinearGradient(0, 0, 0, H);
+  skyG.addColorStop(0,    'rgba(6,8,22,1)');
+  skyG.addColorStop(0.20, 'rgba(10,14,30,1)');
+  skyG.addColorStop(0.45, 'rgba(14,20,38,1)');
+  skyG.addColorStop(0.68, 'rgba(18,28,46,1)');
+  skyG.addColorStop(0.85, 'rgba(22,32,44,1)');
+  skyG.addColorStop(1,    'rgba(18,26,36,1)');
+  ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, H);
+
+  // ── Moonrise glow — large, luminous, right of center ──
+  const moonX = W*0.74, moonY = H*0.17;
+  const moonAura = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, W*0.38);
+  moonAura.addColorStop(0,   'rgba(200,215,255,0.28)');
+  moonAura.addColorStop(0.18,'rgba(160,185,235,0.14)');
+  moonAura.addColorStop(0.45,'rgba(100,130,200,0.06)');
+  moonAura.addColorStop(1,   'transparent');
+  ctx.fillStyle = moonAura; ctx.fillRect(0, 0, W, H);
+
+  // Crescent moon disc — bright, clear night moon, left-facing crescent
+  const moonR = W*0.034;
+  // Offscreen canvas so shadow is truly transparent (bg shows through)
+  const moc = document.createElement('canvas');
+  moc.width = W; moc.height = H;
+  const mox = moc.getContext('2d');
+  const moonGrd = mox.createRadialGradient(moonX + moonR*0.18, moonY - moonR*0.2, moonR*0.05, moonX, moonY, moonR);
+  moonGrd.addColorStop(0,   'rgba(252,254,255,1)');
+  moonGrd.addColorStop(0.45,'rgba(226,238,255,1)');
+  moonGrd.addColorStop(1,   'rgba(188,210,248,1)');
+  mox.fillStyle = moonGrd;
+  mox.beginPath(); mox.arc(moonX, moonY, moonR, 0, Math.PI*2); mox.fill();
+  // Cut shadow on right side → left-facing crescent
+  mox.globalCompositeOperation = 'destination-out';
+  mox.fillStyle = 'rgba(0,0,0,1)';
+  mox.beginPath(); mox.arc(moonX + moonR*0.42, moonY + moonR*0.04, moonR*0.88, 0, Math.PI*2); mox.fill();
+  ctx.drawImage(moc, 0, 0);
+  // Luminous left-arc edge glow
+  ctx.save();
+  ctx.globalAlpha = 0.38;
+  ctx.strokeStyle = 'rgba(235,246,255,1)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(moonX, moonY, moonR, Math.PI*0.45, Math.PI*1.55);
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Stars — rich, twinkling, post-rain clarity ──
+  if (!drawScene5._stars) {
+    drawScene5._stars = Array.from({length: 90}, () => ({
+      x: Math.random(), y: Math.random()*0.55,
+      r: 0.4 + Math.random()*1.4,
+      a: 0.3 + Math.random()*0.7,
+      ph: Math.random()*Math.PI*2,
+      spd: 0.6 + Math.random()*1.2
+    }));
+  }
+  drawScene5._stars.forEach(s => {
+    const tw = 0.55 + 0.45*Math.sin(t*s.spd + s.ph);
+    // Skip stars near moon
+    const dx = s.x - moonX/W, dy = s.y - moonY/H;
+    if (dx*dx + dy*dy < 0.008) return;
+    ctx.fillStyle = `rgba(220,232,255,${s.a*tw})`;
+    ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── A few brighter star glints with cross-flare ──
+  [[0.12,0.08],[0.28,0.14],[0.52,0.06],[0.88,0.10],[0.65,0.22],[0.08,0.30]].forEach(([sx,sy],i) => {
+    const pulse = 0.6 + 0.4*Math.sin(t*0.9 + i*1.8);
+    const sr = (1.2 + 0.4*pulse);
+    ctx.fillStyle = `rgba(230,240,255,${0.85*pulse})`;
+    ctx.beginPath(); ctx.arc(sx*W, sy*H, sr, 0, Math.PI*2); ctx.fill();
+    // Cross flare
+    ctx.strokeStyle = `rgba(210,225,255,${0.20*pulse})`;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(sx*W-sr*3,sy*H); ctx.lineTo(sx*W+sr*3,sy*H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx*W,sy*H-sr*3); ctx.lineTo(sx*W,sy*H+sr*3); ctx.stroke();
+  });
+
+  // ── Parting clouds — burst from center of sky, drift fast outward ──
+  // Cloud positions driven by scene5CloudT which resets on every entry
+  const cloudT = scene5CloudT; // elapsed seconds since last scene 5 entry
+  const forwardClouds = [
+    // Left-side clouds — start left-of-center, fly further left
+    {ox:0.25, oy:0.06,  rx:0.38, ry:0.110, spd:0.028, side:-1 },
+    {ox:0.23, oy:0.15,  rx:0.32, ry:0.088, spd:0.022, side:-1 },
+    {ox:0.28, oy:0.03,  rx:0.28, ry:0.078, spd:0.033, side:-1 },
+    {ox:0.21, oy:0.24,  rx:0.24, ry:0.066, spd:0.019, side:-1 },
+    {ox:0.33, oy:0.32,  rx:0.20, ry:0.054, spd:0.016, side:-1 },
+    // Right-side clouds — start right-of-center, fly further right
+    {ox:0.75, oy:0.05,  rx:0.36, ry:0.105, spd:0.030, side:1  },
+    {ox:0.77, oy:0.14,  rx:0.30, ry:0.088, spd:0.024, side:1  },
+    {ox:0.72, oy:0.02,  rx:0.32, ry:0.082, spd:0.035, side:1  },
+    {ox:0.79, oy:0.23,  rx:0.26, ry:0.068, spd:0.020, side:1  },
+    {ox:0.67, oy:0.31,  rx:0.22, ry:0.056, spd:0.017, side:1  },
+  ];
+  forwardClouds.forEach((c, i) => {
+    const drift = cloudT * c.spd;
+    const cx = (c.ox + c.side * drift) * W;
+    const cy = c.oy * H + Math.sin(t * 0.08 + i * 1.1) * 5;
+    // Fade out as they exit screen edges
+    const edgeFade = c.side === -1
+      ? clamp((cx + c.rx*W*0.55) / (W*0.15), 0, 1)
+      : clamp((W - cx + c.rx*W*0.55) / (W*0.15), 0, 1);
+    for (let b = 0; b < 6; b++) {
+      const bx = cx + b * 11 * c.side;
+      const by = cy + b * 3.2;
+      const bg = ctx.createRadialGradient(bx, by, 0, bx, by, c.rx*W*0.52);
+      bg.addColorStop(0,    `rgba(22,30,52,${0.72*edgeFade})`);
+      bg.addColorStop(0.5,  `rgba(16,22,42,${0.50*edgeFade})`);
+      bg.addColorStop(0.85, `rgba(28,38,65,${0.14*edgeFade})`);
+      bg.addColorStop(1,    'transparent');
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.ellipse(bx - 22*c.side, by, c.rx*W*0.52, c.ry*H*1.05, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+
+  // ── Moon path shimmer through cloud gap ──
+  const gapGlow = ctx.createRadialGradient(W*0.5, H*0.14, 0, W*0.5, H*0.14, W*0.28);
+  gapGlow.addColorStop(0,   'rgba(180,200,255,0.10)');
+  gapGlow.addColorStop(0.4, 'rgba(120,150,220,0.04)');
+  gapGlow.addColorStop(1,   'transparent');
+  ctx.fillStyle = gapGlow; ctx.fillRect(0, 0, W, H*0.5);
+
+  // ── Lake ──
+  const lakeY = H * 0.60;
+
+  // Horizon glow — cool silver-blue where moon meets water
+  const horizBlush = ctx.createLinearGradient(0, lakeY - H*0.05, 0, lakeY + H*0.06);
+  horizBlush.addColorStop(0,    'transparent');
+  horizBlush.addColorStop(0.35, 'rgba(100,140,220,0.18)');
+  horizBlush.addColorStop(0.55, 'rgba(120,160,240,0.22)');
+  horizBlush.addColorStop(0.75, 'rgba(80,110,190,0.10)');
+  horizBlush.addColorStop(1,    'transparent');
+  ctx.fillStyle = horizBlush; ctx.fillRect(0, lakeY - H*0.05, W, H*0.11);
+
+  // Horizon seam
+  const horizLine = ctx.createLinearGradient(0, lakeY-1, 0, lakeY+3);
+  horizLine.addColorStop(0,   'transparent');
+  horizLine.addColorStop(0.5, 'rgba(140,175,240,0.50)');
+  horizLine.addColorStop(1,   'transparent');
+  ctx.fillStyle = horizLine; ctx.fillRect(0, lakeY-1, W, 4);
+
+  // Lake body — deep night indigo
+  const lakeG = ctx.createLinearGradient(0, lakeY, 0, H);
+  lakeG.addColorStop(0,   'rgba(12,20,44,1)');
+  lakeG.addColorStop(0.3, 'rgba(10,16,36,1)');
+  lakeG.addColorStop(1,   'rgba(6,10,22,1)');
+  ctx.fillStyle = lakeG; ctx.fillRect(0, lakeY, W, H - lakeY);
+
+  // ── Moon column on water — the central charm ──
+  const shimCX = W*0.74;
+  for (let i = 0; i < 14; i++) {
+    const sy = lakeY + H*0.008 + i*(H*0.044);
+    const shimW = (W*0.012 + i*W*0.018) * (0.78 + 0.22*Math.sin(t*0.8 + i*1.1));
+    const shimA = (0.38 - i*0.022) * (0.6 + 0.4*Math.sin(t*0.55 + i*0.7));
+    ctx.fillStyle = `rgba(200,220,255,${Math.max(0,shimA)})`;
+    ctx.beginPath();
+    ctx.ellipse(shimCX + Math.sin(t*0.4+i)*W*0.006, sy, Math.max(1,shimW), H*0.005, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // ── Scattered star reflections in lake ──
+  [[0.15,0.67],[0.32,0.71],[0.58,0.65],[0.82,0.69],[0.45,0.78],[0.68,0.74]].forEach(([rx,ry],i)=>{
+    const pulse = 0.5 + 0.5*Math.sin(t*1.1 + i*2.3);
+    ctx.fillStyle = `rgba(180,200,245,${0.12*pulse})`;
+    ctx.beginPath(); ctx.arc(rx*W, ry*H, 1.2, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── Gentle night ripples ──
+  ctx.lineWidth = 0.7;
+  [[0,0.624,0.5,0.617,1,0.626],[0,0.655,0.4,0.648,0.8,0.658,1,0.650],
+   [0,0.690,0.35,0.683,0.7,0.694,1,0.686],[0,0.726,0.5,0.719,1,0.729],
+   [0,0.764,0.4,0.757,0.8,0.769],[0,0.812,0.5,0.805,1,0.815],
+   [0,0.860,0.5,0.853,1,0.863],[0,0.912,0.5,0.905,1,0.914]
+  ].forEach((pts,ri) => {
+    // Ripples near moon column pick up silver tinge
+    const nearMoon = Math.abs(0.74 - 0.5) < 0.3 ? 1 : 0;
+    ctx.strokeStyle = `rgba(${28+nearMoon*10},${38+nearMoon*14},${62+nearMoon*20},0.38)`;
+    ctx.beginPath();
+    for (let i=0; i<pts.length; i+=2)
+      i===0 ? ctx.moveTo(pts[i]*W, pts[i+1]*H) : ctx.lineTo(pts[i]*W, pts[i+1]*H);
+    ctx.stroke();
+  });
+
+  // ── Distant mountains — crisp in clear night air ──
+  ctx.fillStyle = 'rgba(10,14,26,1)';
+  ctx.beginPath();
+  ctx.moveTo(0, lakeY); ctx.lineTo(W*0.08,lakeY-H*0.065); ctx.lineTo(W*0.18,lakeY-H*0.092);
+  ctx.lineTo(W*0.28,lakeY-H*0.070); ctx.lineTo(W*0.36,lakeY-H*0.052); ctx.lineTo(W*0.44,lakeY-H*0.038);
+  ctx.lineTo(W*0.5,lakeY); ctx.closePath(); ctx.fill();
+
+  ctx.fillStyle = 'rgba(8,12,22,1)';
+  ctx.beginPath();
+  ctx.moveTo(W*0.5,lakeY); ctx.lineTo(W*0.58,lakeY-H*0.042); ctx.lineTo(W*0.67,lakeY-H*0.078);
+  ctx.lineTo(W*0.76,lakeY-H*0.058); ctx.lineTo(W*0.85,lakeY-H*0.088); ctx.lineTo(W*0.94,lakeY-H*0.066);
+  ctx.lineTo(W,lakeY-H*0.048); ctx.lineTo(W,lakeY); ctx.closePath(); ctx.fill();
+
+  // ── Tiny far-shore lights — warm specks on horizon ──
+  [{x:0.30,s:1.1},{x:0.36,s:0.9},{x:0.42,s:1.3},{x:0.48,s:0.8},{x:0.54,s:1.0},{x:0.60,s:1.2},{x:0.66,s:0.9}].forEach((l,i)=>{
+    const lx = l.x*W, ly = lakeY - H*0.004 + Math.sin(l.x*10)*H*0.003;
+    const fl = 0.7 + 0.3*Math.sin(t*1.4 + l.x*15);
+    const lg = ctx.createRadialGradient(lx,ly,0,lx,ly,l.s*W*0.010);
+    lg.addColorStop(0, `rgba(230,195,120,${0.32*fl})`);
+    lg.addColorStop(1, 'transparent');
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(lx,ly,l.s*W*0.010,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(240,210,140,${0.60*fl})`;
+    ctx.beginPath(); ctx.arc(lx,ly,l.s*0.9,0,Math.PI*2); ctx.fill();
+    // reflection of light in lake
+    ctx.fillStyle = `rgba(220,185,100,${0.10*fl})`;
+    ctx.beginPath(); ctx.ellipse(lx, ly+H*0.018+i*H*0.004, l.s*3*(W/900), H*0.003, 0,0,Math.PI*2); ctx.fill();
+  });
+
+  // Distant trees
+  ctx.fillStyle = 'rgba(6,10,18,0.95)';
+  [0.02,0.055,0.09,0.125,0.16,0.195,0.23,0.265,0.30,0.335,0.37,0.405].forEach((tx,i)=>{
+    const tH=H*(0.018+Math.sin(i*1.3)*0.005), tW=W*0.009;
+    ctx.beginPath(); ctx.moveTo(tx*W-tW*0.5,lakeY); ctx.lineTo(tx*W,lakeY-tH); ctx.lineTo(tx*W+tW*0.5,lakeY); ctx.closePath(); ctx.fill();
+  });
+  [0.52,0.555,0.59,0.625,0.66,0.695,0.73,0.765,0.80,0.835,0.87,0.905,0.94,0.97].forEach((tx,i)=>{
+    const tH=H*(0.016+Math.sin(i*1.7)*0.006), tW=W*0.009;
+    ctx.beginPath(); ctx.moveTo(tx*W-tW*0.5,lakeY); ctx.lineTo(tx*W,lakeY-tH); ctx.lineTo(tx*W+tW*0.5,lakeY); ctx.closePath(); ctx.fill();
+  });
+
+  // ── Bank — slimmed ──
+  ctx.fillStyle = 'rgba(8,12,20,0.94)';
+  ctx.beginPath();
+  ctx.moveTo(0, lakeY + H*0.10);
+  ctx.quadraticCurveTo(W*0.15, lakeY+H*0.055, W*0.30, lakeY+H*0.030);
+  ctx.quadraticCurveTo(W*0.48, lakeY+H*0.020, W*0.5,  lakeY+H*0.024);
+  ctx.quadraticCurveTo(W*0.65, lakeY+H*0.028, W*0.82, lakeY+H*0.038);
+  ctx.quadraticCurveTo(W*0.92, lakeY+H*0.060, W,      lakeY+H*0.092);
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fill();
+
+  // Wet night grass — dark teal tinge
+  ctx.strokeStyle = 'rgba(18,38,42,0.55)'; ctx.lineWidth = 1.1;
+  [0.26,0.30,0.34,0.38,0.42,0.46,0.50,0.54,0.58,0.62,0.66].forEach((tx,i)=>{
+    const ty = lakeY + H*(0.026 - i*0.0004);
+    ctx.beginPath(); ctx.moveTo(tx*W,ty); ctx.quadraticCurveTo(tx*W+3,ty-H*0.013,tx*W+6,ty); ctx.stroke();
+  });
+
+  // ── Bioluminescent-ish glow on wet bank — subtle blue-green shimmer ──
+  for (let g=0; g<5; g++) {
+    const gx = W*(0.30 + g*0.10), gy = lakeY + H*0.022;
+    const pulse = 0.3 + 0.3*Math.sin(t*0.7 + g*1.5);
+    const gg = ctx.createRadialGradient(gx,gy,0,gx,gy,W*0.030);
+    gg.addColorStop(0, `rgba(40,180,160,${0.06*pulse})`);
+    gg.addColorStop(1, 'transparent');
+    ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(gx,gy,W*0.030,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── BIRDS — 3 silhouettes, drifting across open sky, lit by moonlight ──
+  const birdSpeed = t*0.005;
+  [{bx:0.34+birdSpeed, by:0.19, size:1.0},
+   {bx:0.40+birdSpeed, by:0.16, size:0.78},
+   {bx:0.46+birdSpeed, by:0.20, size:0.65}].forEach(b => {
+    const bx2=(b.bx%1.18)*W, by2=b.by*H;
+    const s=b.size*(W/900)*15;
+    const flap=Math.sin(t*2.6+b.by*10)*0.30;
+    ctx.beginPath();
+    ctx.moveTo(bx2,by2);
+    ctx.quadraticCurveTo(bx2-s*0.7, by2-s*(0.5+flap), bx2-s*1.5, by2+s*0.05);
+    ctx.moveTo(bx2,by2);
+    ctx.quadraticCurveTo(bx2+s*0.7, by2-s*(0.5+flap), bx2+s*1.5, by2+s*0.05);
+    ctx.strokeStyle = `rgba(190,210,250,0.80)`;
+    ctx.lineWidth = 1.6*b.size; ctx.stroke();
+  });
+
+  // ── TRAVELER — standing, arms open, looking up at clearing sky ──
+  const fx = W*0.4975, fy = lakeY + H*0.028;
+  const sc = H/720;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(2,4,8,0.40)';
+  ctx.beginPath(); ctx.ellipse(fx+12*sc, fy+75*sc, 24*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+
+  // Legs
+  ctx.fillStyle = 'rgba(18,26,42,1)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(fx+4*sc,fy+54*sc,8*sc,24*sc,3*sc) : ctx.rect(fx+4*sc,fy+54*sc,8*sc,24*sc);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(fx+14*sc,fy+54*sc,8*sc,24*sc,3*sc) : ctx.rect(fx+14*sc,fy+54*sc,8*sc,24*sc);
+  ctx.fill();
+
+  // Body
+  ctx.fillStyle = 'rgba(24,36,56,1)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(fx,fy+16*sc,22*sc,42*sc,5*sc) : ctx.rect(fx,fy+16*sc,22*sc,42*sc);
+  ctx.fill();
+
+  // Head tilted up toward sky
+  ctx.fillStyle = 'rgba(28,42,62,1)';
+  ctx.beginPath(); ctx.ellipse(fx+11*sc, fy+5*sc, 11*sc, 12*sc, 0.20, 0, Math.PI*2); ctx.fill();
+
+  // Arms open — accepting, free
+  ctx.strokeStyle = 'rgba(24,36,56,1)'; ctx.lineWidth = 5*sc; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(fx,fy+30*sc); ctx.quadraticCurveTo(fx-16*sc,fy+38*sc,fx-18*sc,fy+50*sc); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(fx+22*sc,fy+30*sc); ctx.quadraticCurveTo(fx+36*sc,fy+36*sc,fx+38*sc,fy+48*sc); ctx.stroke();
+
+  // ── Moon reflection puddle at traveler's feet ──
+  const pudGrad = ctx.createRadialGradient(fx+11*sc, fy+82*sc, 0, fx+11*sc, fy+82*sc, W*0.06);
+  pudGrad.addColorStop(0,   'rgba(140,165,230,0.18)');
+  pudGrad.addColorStop(0.5, 'rgba(80,110,190,0.08)');
+  pudGrad.addColorStop(1,   'transparent');
+  ctx.fillStyle = pudGrad;
+  ctx.beginPath(); ctx.ellipse(fx+11*sc, fy+82*sc, W*0.06, W*0.014, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+// ═══════════════════════════════════════════════════════════════
+// RAIN SYSTEM (from original)
+// ═══════════════════════════════════════════════════════════════
+let rainDrops=[];
+function initRain(){
+  rainDrops=Array.from({length:Math.floor(W/5)},()=>({
+    x:Math.random()*W, y:Math.random()*H,
+    len:Math.random()*22+8,
+    speed:Math.random()*4+2.5,
+    opacity:Math.random()*0.55+0.1
+  }));
+}
+initRain();
+window.addEventListener('resize',initRain);
+
+function animateRain(alpha){
+  rctx.clearRect(0,0,W,H);
+  if(alpha<0.01) return;
+  rctx.lineWidth=0.9;
+  rainDrops.forEach(d=>{
+    rctx.globalAlpha=d.opacity*alpha;
+    rctx.strokeStyle='rgba(160,190,230,1)';
+    rctx.beginPath(); rctx.moveTo(d.x,d.y); rctx.lineTo(d.x-1.5,d.y+d.len); rctx.stroke();
+    d.y+=d.speed; d.x-=0.5;
+    if(d.y>H){ d.y=-d.len; d.x=Math.random()*W; }
+  });
+  rctx.globalAlpha=1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCENE STATE & CROSSFADE
+// ═══════════════════════════════════════════════════════════════
+let currentScene=0, targetScene=0, sceneBlend=1.0, prevScene=0, animT=0;
+let scene5StartT = -1;       // tracks when scene 5 was first entered
+let scene5CloudT = 0;        // elapsed time since last scene 5 entry — resets on enter/exit
+let scene5CloudEntryT = -1;  // animT at which scene 5 was last entered
+let scene1EntryT = -1;       // animT at which scene 1 was last entered — waves reset on entry
+const SCENE_FNS=[drawSceneHero,drawScene1,drawScene2,drawScene3,drawScene4,drawScene5];
+
+function renderFrame(){
+  animT+=0.016;
+  sctx.clearRect(0,0,W,H);
+  // Update cloud drift timer — only ticks while in scene 5
+  if (currentScene === 5 && scene5CloudEntryT >= 0) {
+    scene5CloudT = animT - scene5CloudEntryT;
+  }
+
+  if(sceneBlend>=1){
+    SCENE_FNS[currentScene](sctx,1,animT);
+  } else {
+    SCENE_FNS[prevScene](sctx,1-sceneBlend,animT);
+    SCENE_FNS[currentScene](sctx,sceneBlend,animT);
+    // Scene 2 transitions are snappier — 2× blend speed in or out
+    const blendRate = (currentScene === 2 || prevScene === 2) ? 0.032 : 0.007;
+    sceneBlend=Math.min(1,sceneBlend+blendRate);
+  }
+
+  const rainAlpha=currentScene===4 ? clamp(sceneBlend*1.2,0,1) : 0;
+  rainCanvas.style.opacity=rainAlpha;
+  animateRain(1);
+
+  requestAnimationFrame(renderFrame);
+}
+renderFrame();
+
+// ═══════════════════════════════════════════════════════════════
+// SCROLL → SCENE MAPPING
+// ═══════════════════════════════════════════════════════════════
+const sections=document.querySelectorAll('[data-scene]');
+
+function updateScene(){
+  // Active scene = highest-numbered section whose text has settled into view.
+  // On mobile text sits higher so trigger slightly earlier; desktop waits 45%.
+  const isMobile = W < 481;
+  const triggerLine = H * (isMobile ? 0.35 : 0.45);
+  let best=0;
+  sections.forEach(sec=>{
+    const rect=sec.getBoundingClientRect();
+    if(rect.bottom>0 && rect.top<triggerLine) best=parseInt(sec.dataset.scene);
+  });
+  // Scrolled past all sections → hold at last scene
+  if(best===0){
+    sections.forEach(sec=>{
+      const rect=sec.getBoundingClientRect();
+      if(rect.bottom<=0) best=parseInt(sec.dataset.scene);
+    });
+  }
+  if(best!==currentScene){
+    // Reset cloud timer whenever scene 5 is entered or exited
+    if(best===5 || currentScene===5){
+      scene5CloudEntryT = animT;
+      scene5CloudT = 0;
+    }
+    // Reset wave phase whenever scene 1 is entered or exited
+    if(best===1 || currentScene===1){
+      scene1EntryT = animT;
+    }
+    prevScene=currentScene;
+    currentScene=best;
+    sceneBlend=0;
+    if(best===5 && scene5StartT < 0) scene5StartT = animT;
+  }
+}
+window.addEventListener('scroll',updateScene,{passive:true});
+
+const ioThreshold = window.innerWidth < 481 ? 0.10 : 0.20;
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold: ioThreshold});
+document.querySelectorAll('.stanza-card,.drop-sep').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
+HTMLEOF

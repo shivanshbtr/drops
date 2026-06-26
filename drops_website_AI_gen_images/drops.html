@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drops — Not every storm begins with rain.</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #000;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+  will-change: transform;
+  transform: scale(1.08);
+}
+
+#bg-cover {
+  background-position: center bottom;
+}
+
+.bg-layer:not(#bg-cover) {
+  background-position: center center;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#cover .overlay {
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0.05) 0%,
+    rgba(0,0,0,0.0) 35%,
+    rgba(0,0,0,0.08) 70%,
+    rgba(0,0,0,0.25) 100%);
+}
+#scene1 .overlay {
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0.28) 0%,
+    rgba(0,0,0,0.06) 55%,
+    rgba(0,0,0,0.45) 100%);
+}
+#scene2 .overlay {
+  background: linear-gradient(to right,
+    rgba(0,0,0,0.3) 0%,
+    rgba(0,0,0,0.04) 55%,
+    rgba(0,0,0,0.18) 100%);
+}
+
+/* Color grade for scene 2 — lifts the golden lantern & sunset tones */
+#bg-2 {
+  filter: brightness(1.18) saturate(1.35) contrast(1.06);
+}
+
+/* Warm sunset glow bleeding in from the left (where the sea/sun is) */
+#scene2 .warm-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 70% at 0% 55%, rgba(210,110,20,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 8% 62%, rgba(255,160,40,0.12) 0%, transparent 60%);
+}
+
+/* Lantern warmth — golden pools from bottom right where lanterns cluster */
+#scene2 .lantern-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 50% 45% at 90% 75%, rgba(255,175,50,0.13) 0%, transparent 65%),
+    radial-gradient(ellipse 30% 30% at 75% 85%, rgba(240,150,30,0.1) 0%, transparent 55%);
+}
+#scene3 .overlay {
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0.3) 0%,
+    rgba(0,0,0,0.08) 50%,
+    rgba(0,0,0,0.42) 100%);
+}
+#scene4 .overlay { background: rgba(0,0,0,0.28); }
+#scene5 .overlay {
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0.22) 0%,
+    rgba(0,0,0,0.08) 55%,
+    rgba(0,0,0,0.45) 100%);
+}
+#ending .overlay {
+  background: linear-gradient(to bottom,
+    rgba(0,0,0,0.18) 0%,
+    rgba(0,0,0,0.06) 40%,
+    rgba(0,0,0,0.35) 100%);
+}
+
+/* Scroll hint */
+.scroll-hint {
+  position: absolute;
+  bottom: 3.5vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 1.2s ease 2.4s;
+}
+.scroll-hint.visible { opacity: 0.45; }
+.scroll-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #d4c4a0;
+  animation: scrollPulse 2.2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50%       { opacity: 1;   transform: translateY(7px); }
+}
+
+/* ── STANZA POSITIONING ── */
+.stanza-wrap {
+  position: absolute;
+  z-index: 10;
+  max-width: min(440px, 82vw);
+  white-space: nowrap;
+}
+
+#scene1 .stanza-wrap { top: 18vh; right: 14vw;  text-align: right; }
+#scene2 .stanza-wrap { top: 20vh; left: 6vw;   text-align: left;  }
+#scene3 .stanza-wrap { top: 9vh;  left: 50%; transform: translateX(-50%); text-align: center; }
+#scene4 .stanza-wrap { top: 9vh;  left: 50%; transform: translateX(-50%); text-align: center; }
+#scene5 .stanza-wrap { top: 16vh; left: 58%; text-align: left; }
+
+/* ── LINE BASE ── */
+.stanza-line {
+  display: block;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(0.78rem, 2.6vw, 1.14rem);
+  font-weight: 400;
+  line-height: 2.15;
+  letter-spacing: 0.03em;
+  color: #e4d8c0;
+  text-shadow:
+    0 1px 10px rgba(0,0,0,0.95),
+    0 3px 28px rgba(0,0,0,0.8),
+    0 0 70px rgba(0,0,0,0.5);
+  opacity: 0;
+  white-space: nowrap;
+}
+
+/* Scene 1 — rise from mist */
+#scene1 .stanza-line {
+  transform: translateY(18px);
+  filter: blur(3px);
+  transition: opacity 1.2s ease, transform 1.2s ease, filter 1.2s ease;
+}
+#scene1 .stanza-line.visible {
+  opacity: 1; transform: translateY(0); filter: blur(0);
+}
+
+/* Scene 2 — slide from left */
+#scene2 .stanza-line {
+  transform: translateX(-22px);
+  transition: opacity 1s cubic-bezier(0.25,0.46,0.45,0.94),
+              transform 1s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+#scene2 .stanza-line.visible {
+  opacity: 1; transform: translateX(0);
+}
+
+/* Scene 3 — curtain reveal */
+#scene3 .stanza-line {
+  clip-path: inset(0 0 100% 0);
+  transition: opacity 1.0s ease,
+              clip-path 1.0s cubic-bezier(0.16,1,0.3,1);
+}
+#scene3 .stanza-line.visible {
+  opacity: 1; clip-path: inset(0 0 0% 0);
+}
+
+/* Scene 4 — slow heavy fade */
+#scene4 .stanza-line {
+  transform: translateY(6px);
+  transition: opacity 1.5s ease, transform 1.5s ease;
+}
+#scene4 .stanza-line.visible {
+  opacity: 1; transform: translateY(0);
+}
+
+/* Scene 5 — gentle spring rise */
+#scene5 .stanza-line {
+  transform: translateY(14px) scale(0.97);
+  transition: opacity 1.1s cubic-bezier(0.34,1.46,0.64,1),
+              transform 1.1s cubic-bezier(0.34,1.46,0.64,1);
+}
+#scene5 .stanza-line.visible {
+  opacity: 1; transform: translateY(0) scale(1);
+}
+
+/* Water shimmer */
+.water-shimmer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 38%;
+  z-index: 4; pointer-events: none;
+  background: linear-gradient(to top, rgba(255,190,80,0.032) 0%, transparent 100%);
+  animation: wShimmer 4.5s ease-in-out infinite;
+}
+@keyframes wShimmer {
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 1; }
+}
+
+.rain-canvas {
+  position: absolute; inset: 0; z-index: 6;
+  pointer-events: none; opacity: 0.28;
+}
+.birds-canvas {
+  position: absolute; inset: 0; z-index: 7;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  /* Scene 1 mobile: use portrait image — sun fully visible */
+  #bg-1 { background-image: url('1-mob.jpg') !important; background-position: center center; }
+
+  /* Scene 2 mobile: use portrait image — perfectly composed */
+  #bg-2 { background-image: url('2-mob.jpg') !important; background-position: center center; filter: brightness(1.18) saturate(1.35) contrast(1.06); }
+
+  /* Ending mobile: use portrait image */
+  #bg-end { background-image: url('end-mob.jpg') !important; background-position: center center; }
+
+  /* All stanzas: center, contained */
+  .stanza-wrap {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    text-align: center !important;
+    max-width: 94vw;
+    white-space: nowrap;
+  }
+
+  #scene5 .stanza-wrap { top: 14vh !important; }
+  #scene2 .stanza-wrap { top: 8vh !important; }
+  #scene1 .stanza-wrap { top: 10vh !important; }
+
+  /* Font scales with vw so every line stays on one line */
+  .stanza-line {
+    font-size: clamp(0.58rem, 3.4vw, 0.85rem);
+    letter-spacing: 0.015em;
+    line-height: 2.2;
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.4s !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="scene" id="cover">
+  <div class="bg-layer" id="bg-cover" style="background-image: url('cover.jpg')"></div>
+  <div class="overlay"></div>
+  <div class="scroll-hint" id="scroll-hint"><div class="scroll-dot"></div></div>
+</section>
+
+<!-- SCENE 1 -->
+<section class="scene" id="scene1">
+  <div class="bg-layer" id="bg-1" style="background-image: url('1.jpg')"></div>
+  <div class="overlay"></div>
+  <div class="water-shimmer"></div>
+  <div class="stanza-wrap" id="stanza1">
+    <span class="stanza-line">Maybe just a little more</span>
+    <span class="stanza-line">And I would have touched the shore</span>
+    <span class="stanza-line">The waves were still chanting my name</span>
+    <span class="stanza-line">But sea no longer felt the same</span>
+  </div>
+</section>
+
+<!-- SCENE 2 -->
+<section class="scene" id="scene2">
+  <div class="bg-layer" id="bg-2" style="background-image: url('2.jpg')"></div>
+  <div class="overlay"></div>
+  <div class="warm-glow"></div>
+  <div class="lantern-glow"></div>
+  <div class="stanza-wrap" id="stanza2">
+    <span class="stanza-line">I chose a path that felt secure</span>
+    <span class="stanza-line">Stepped back from what I adore</span>
+    <span class="stanza-line">A decision that felt more mature</span>
+    <span class="stanza-line">Yet left my heart forever unsure</span>
+  </div>
+</section>
+
+<!-- SCENE 3 -->
+<section class="scene" id="scene3">
+  <div class="bg-layer" id="bg-3" style="background-image: url('3.jpg')"></div>
+  <div class="overlay"></div>
+  <div class="water-shimmer"></div>
+  <div class="stanza-wrap" id="stanza3">
+    <span class="stanza-line">Strangely it felt peaceful there</span>
+    <span class="stanza-line">Far away from storm and fear</span>
+    <span class="stanza-line">But soon enough the silence met</span>
+    <span class="stanza-line">The falling cold drops of regret</span>
+  </div>
+</section>
+
+<!-- SCENE 4 -->
+<section class="scene" id="scene4">
+  <div class="bg-layer" id="bg-4" style="background-image: url('4.jpg')"></div>
+  <div class="overlay"></div>
+  <canvas class="rain-canvas" id="rain-canvas"></canvas>
+  <div class="stanza-wrap" id="stanza4">
+    <span class="stanza-line">I stood unanswered, it started to rain</span>
+    <span class="stanza-line">Even the thunder was roaring with pain</span>
+    <span class="stanza-line">Those clouds that seemed fully content</span>
+    <span class="stanza-line">Were too shedding drops of lament</span>
+  </div>
+</section>
+
+<!-- SCENE 5 -->
+<section class="scene" id="scene5">
+  <div class="bg-layer" id="bg-5" style="background-image: url('5.jpg')"></div>
+  <div class="overlay"></div>
+  <div class="water-shimmer"></div>
+  <canvas class="birds-canvas" id="birds-canvas"></canvas>
+  <div class="stanza-wrap" id="stanza5">
+    <span class="stanza-line">Then they stopped and moved forward</span>
+    <span class="stanza-line">As if they started chasing the next bird</span>
+    <span class="stanza-line">Is it that their scars were gone,</span>
+    <span class="stanza-line">Or that they learned to carry on?</span>
+  </div>
+</section>
+
+<!-- ENDING -->
+<section class="scene" id="ending">
+  <div class="bg-layer" id="bg-end" style="background-image: url('end.jpg')"></div>
+  <div class="overlay"></div>
+</section>
+
+<script>
+// ── PARALLAX ──
+const bgLayers = document.querySelectorAll('.bg-layer');
+function parallaxUpdate() {
+  bgLayers.forEach(layer => {
+    const scene = layer.closest('.scene');
+    const rect  = scene.getBoundingClientRect();
+    const vh    = window.innerHeight;
+    const prog  = (vh - rect.top) / (vh + rect.height);
+    const shift = (prog - 0.5) * 55;
+    if (layer.id === 'bg-cover') {
+      layer.style.transform = `scale(1.08) translateY(${shift * 0.4}px)`;
+    } else {
+      layer.style.transform = `scale(1.08) translateY(${shift}px)`;
+    }
+  });
+}
+
+// ── STANZA REVEAL ──
+const GAPS = { scene1: 320, scene2: 280, scene3: 260, scene4: 400, scene5: 280 };
+
+// Track pending timeouts per scene so we can cancel on exit
+const sceneTimers = {};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const id    = entry.target.id;
+    const lines = entry.target.querySelectorAll('.stanza-line');
+
+    if (entry.isIntersecting) {
+      // Scene entering — animate lines in
+      const gap = GAPS[id] || 280;
+      sceneTimers[id] = lines.forEach((line, i) => {
+        const t = setTimeout(() => line.classList.add('visible'), 300 + i * gap);
+        (sceneTimers[id] = sceneTimers[id] || []).push(t);
+      });
+      if (id === 'cover') document.getElementById('scroll-hint').classList.add('visible');
+    } else {
+      // Scene exiting — cancel any pending timers and reset lines
+      if (sceneTimers[id]) {
+        sceneTimers[id].forEach(t => clearTimeout(t));
+        sceneTimers[id] = [];
+      }
+      lines.forEach(line => line.classList.remove('visible'));
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('.scene').forEach(s => observer.observe(s));
+
+// ── RAIN (scene 4) ──
+(function() {
+  const canvas = document.getElementById('rain-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, drops;
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+    drops = Array.from({length: 110}, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      len: Math.random() * 14 + 7,
+      speed: Math.random() * 3 + 2.2,
+      o: Math.random() * 0.2 + 0.07,
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    drops.forEach(d => {
+      ctx.globalAlpha = d.o;
+      ctx.strokeStyle = 'rgba(165,192,222,0.9)';
+      ctx.lineWidth = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x - 0.8, d.y + d.len);
+      ctx.stroke();
+      d.y += d.speed;
+      if (d.y > H) { d.y = -d.len; d.x = Math.random() * W; }
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(draw);
+})();
+
+// ── BIRDS (scene 5) ──
+(function() {
+  const canvas = document.getElementById('birds-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  const flock = Array.from({length: 11}, (_, i) => ({
+    x: -100 - i * 50, y: 0, baseY: 0,
+    vx: 0.4 + i * 0.016,
+    phase: i * 0.55,
+    wing: Math.random() * Math.PI * 2,
+    size: 0.65 + Math.random() * 0.38,
+  }));
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+    flock.forEach((b, i) => { b.baseY = H * 0.22 + Math.sin(i * 0.65) * 26; b.y = b.baseY; });
+  }
+  function drawBird(x, y, wing, size) {
+    const s = size * 9;
+    ctx.save(); ctx.translate(x, y);
+    ctx.strokeStyle = 'rgba(12,8,22,0.78)';
+    ctx.lineWidth = 1.0 * size; ctx.lineCap = 'round';
+    const lf = Math.sin(wing) * 4.5 * size;
+    const rf = Math.sin(wing + 0.12) * 4.5 * size;
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.quadraticCurveTo(-s*.5,-lf,-s,lf*.28);
+    ctx.moveTo(0,0); ctx.quadraticCurveTo(s*.5,-rf,s,rf*.28);
+    ctx.stroke(); ctx.restore();
+  }
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, W, H); t += 0.018;
+    flock.forEach(b => {
+      b.x += b.vx;
+      b.y = b.baseY + Math.sin(t * 0.55 + b.phase) * 13;
+      b.wing += 0.065;
+      if (b.x > W + 80) b.x = -80;
+      drawBird(b.x, b.y, b.wing, b.size);
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); window.addEventListener('resize', resize);
+  requestAnimationFrame(draw);
+})();
+
+// ── SCROLL ──
+window.addEventListener('scroll', parallaxUpdate, { passive: true });
+window.addEventListener('resize', parallaxUpdate, { passive: true });
+parallaxUpdate();
+
+window.addEventListener('load', () => {
+  document.getElementById('scroll-hint').classList.add('visible');
+});
+</script>
+</body>
+</html>
