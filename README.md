@@ -28,7 +28,7 @@ Every visual is drawn in code. No images. No external libraries. Just the browse
 
 **What's inside:**
 - **6 animated scenes** that crossfade as you scroll, each matched to its stanza:
-  - Hero → moonlit open sea
+  - Start → moonlit open sea
   - Stanza 1 → turbulent ocean, figure wading, dramatic sunset
   - Stanza 2 → coastal path, the road not taken
   - Stanza 3 → quiet lakeside at dusk
